@@ -57,28 +57,28 @@
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     grid-template-areas:
-      "lora    tank    deye"
-      "inputs  pump    deye";
+      "tank    pump    deye"
+      "inputs  inputs  lora";
     gap: 1rem; padding: 1rem; max-width: 1200px; margin: 0 auto;
   }
   @media (max-width: 900px) {
     .dashboard {
       grid-template-columns: 1fr 1fr;
       grid-template-areas:
-        "lora    tank"
-        "pump    deye"
-        "inputs  inputs";
+        "tank    pump"
+        "deye    inputs"
+        "lora    lora";
     }
   }
   @media (max-width: 600px) {
     .dashboard {
       grid-template-columns: 1fr;
       grid-template-areas:
-        "lora"
         "tank"
         "pump"
         "deye"
-        "inputs";
+        "inputs"
+        "lora";
     }
   }
 
