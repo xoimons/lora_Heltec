@@ -1,0 +1,84 @@
+====================================================================
+DOCUMENT DE REVISIÓ TÈCNICA: PROJECTE SERGI (HELTEC LORA V3)
+====================================================================
+
+1. DESCRIPCIÓ GENERAL DEL SISTEMA
+---------------------------------
+El projecte consisteix en un node de control basat en la placa Heltec Wi-Fi LoRa 32 V3 (ESP32-S3). L'equip disposa de dues funcions principals:
+- Monitorització: Lectura de 4 entrades digitals per a boies de nivell (contacte sec) amb filtratge de soroll per maquinari i programari. De moment, s'activen les 2 primeres boies.
+- Actuació i Comunicació: Control de 4 sortides digitals a relé de 12V mitjançant Mosfets amb indicadors LED i comunicació RS-485 (Half-Duplex) per connectar-se amb un inversor fotovoltaic Deye.
+
+
+2. MAPA DEFINITIU DE PINS (HELTEC LO-RA 32 V3)
+-----------------------------------------------
+Aquest mapeig utilitza la nomenclatura exacta de la caixa de l'esquema d'EasyEDA per evitar conflictes amb la pantalla OLED nativa o el mode d'arrencada (boot).
+
+- MAX485 - Receptor (RO)     --> Pin GPIO40 (Columna Esquerra, Pin 15)
+- MAX485 - Transmissor (DI)  --> Pin GPIO39 (Columna Esquerra, Pin 16)
+- MAX485 - Control de Flux   --> Pin GPIO38 (Columna Esquerra, Pin 17)
+
+- Boia 1 (Entrada in1)       --> Pin GPIO42 (Columna Dreta, Pin 10)
+- Boia 2 (Entrada in2)       --> Pin GPIO41 (Columna Dreta, Pin 9)
+- Boia 3 (Entrada in3)       --> Pin GPIO4  (Columna Dreta, Pin 13)
+- Boia 4 (Entrada in4)       --> Pin GPIO5  (Columna Dreta, Pin 14)
+
+- Relé 1 (Sortida out1)      --> Pin GPIO6  (Columna Dreta, Pin 15)
+- Relé 2 (Sortida out2)      --> Pin GPIO7  (Columna Dreta, Pin 16)
+- Relé 3 (Sortida out3)      --> Pin GPIO45 (Columna Dreta, Pin 8)
+- Relé 4 (Sortida out4)      --> Pin GPIO46 (Columna Dreta, Pin 7)
+
+
+3. ESPECIFICACIONS DELS BLOCS ELECTRÒNICS
+-----------------------------------------
+
+Bloc A: Entrades de Boies (Contacte Sec)
+- Alimentació: 3.3V natius de la placa.
+- Resistències Pull-Down: 4.7 kOhms connectades entre cada pin d'entrada (in1 a in4) i GND.
+  * Càlcul d'intensitat amb boia tancada: I = 3.3V / 4700 Ohms = 0.7 mA. (Segur i lliure de falsos positius).
+- Condensadors de filtre (Recomanat per a cables llargs): 100 nF (0.1 uF) en paral·lel amb cada resistència de pull-down (entre el pin i GND) per eliminar paràsits elèctrics de l'entorn.
+
+Bloc B: Sortides a Relé i Indicació Visual
+Cada una de les 4 sortides idèntiques es compon de:
+- Transistor Mosfet N-Channel: 2N7000 (o 2N7002 en SMD).
+  * Connexió de Porta (Gate): Connectat DIRECTAMENT al pin de la Heltec (sense resistència de 100 Ohms en sèrie per garantir l'obertura total a 3.3V).
+  * Resistència Pull-Down de Seguretat: 10 kOhms entre Porta (Gate) i GND per evitar activacions errònies durant l'arrencada de la placa.
+- Díode Flyback: 1N4148 (o 1N4007) connectat en antiparal·lel amb la bobina del relé per absorbir pics d'alta tensió inductiva.
+- Indicador LED (Color Blau) i Resistència:
+  * Connectats en sèrie, i tot el conjunt en paral·lel amb la bobina del relé (controlat pel drenador del Mosfet).
+  * Resistència de protecció del LED: 150 Ohms o 180 Ohms (ajustat per a LED blau a 5V per aconseguir uns 11 mA nets de llluentor).
+  * Referència LCSC (SMD 0805): C2298 (Model KT-0805B).
+  * Referència LCSC (Through-Hole 3mm): C132223 (Model F304BL-30-W4-S2).
+
+Bloc C: Comunicació MAX485 (Inversor Deye)
+- Alimentació del xip: +5V.
+- Línia RO (Receptor): Requereix un divisor de tensió per rebaixar els 5V de sortida del xip als 3.3V tolerats per la Heltec.
+  * Resistència en sèrie (de RO a GPIO40): 1 kOhm.
+  * Resistència a terra (de GPIO40 a GND): 2 kOhms.
+  * Càlcul de voltatge resultant: Vout = 5V * (2k / (1k + 2k)) = 3.33V (Perfecte).
+- Línies DI i RE/DE: Connexió directa de la Heltec al MAX485 (els 3.3V de l'ESP32 són suficients per activar l'entrada de 5V del xip).
+- Condensador de desacoblament: 100 nF (0.1 uF) ceràmic col·locat directament entre les potes VCC (Pin 8) i GND (Pin 5) del MAX485.
+- Terminació de línia RS-485: Preveure l'espai per a una resistència de 120 Ohms en paral·lel entre els borns A i B al final del bus de dades.
+
+
+4. DIMENSIONAMENT ELÈCTRIC I REGLES DE LA PCB
+-----------------------------------------------
+
+Càlcul de Consum Màxim Estàndard (Pitjor Escenari):
+1. Placa Heltec V3 activa (OLED + LoRa en Tx): ~ 130 mA
+2. Xip MAX485 en comunicació contínua: ~ 30 mA
+3. 4 Relés de 5V + 4 LEDs Blaus actius simultàniament: 4 * (71.4 mA + 11 mA) ~ 330 mA
+4. 4 Entrades de boia tancades: 4 * 0.7 mA ~ 2.8 mA
+* CONSUM TOTAL REQUERIT: ~ 492.8 mA (Es recomana utilitzar una font d'alimentació de 5V i 1A com a mínim).
+
+Regles de Disseny (Design Rules) per a EasyEDA (Autorute):
+- Regla 'Default' (Línies de dades, boies, senyals de control): Ample de pista de 10 mil (0.25 mm).
+- Regla 'Power' (Línies principals de +5V, 3V3 i GND): Ample de pista de 20 mil (0.50 mm) per evitar caigudes de tensió i suportar els ~500 mA de pic amb seguretat.
+
+
+5. REQUISITS DEL PROGRAMARI (CODI ARDUINO)
+------------------------------------------
+- Llibreries: Utilitzar el nucli oficial de Heltec per a ESP32 V3 (RadioLib i HT_SSD1306Wire per a la pantalla).
+- Gestió d'Entrades: Implementar per codi un filtre anti-rebots (debounce) d'un mínim de 100 ms per evitar falses lectures provocades pel moviment de l'aigua o paràsits en el cablejat llarg.
+- Estratègia de Transmissió LoRa: Enviar l'estat en un paquet empaquetat de forma periòdica cada 60 segons, o de forma immediata en el mateix mil·lisegon que es confirmi un canvi d'estat a la Boia 1 o la Boia 2.
+- Gestió de la Pantalla OLED: S'ha d'activar el pin Vext (digitalWrite(Vext, LOW)) al setup() per encendre el display. Mostrarà l'estat LoRa ("OK" / "ENVIANT"), el valor de les boies i el motiu del darrer enviament ("INICI", "CANVI" o "PERIODIC").
+====================================================================
