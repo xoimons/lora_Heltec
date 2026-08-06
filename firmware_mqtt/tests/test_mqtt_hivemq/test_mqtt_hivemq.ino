@@ -2,35 +2,49 @@
 // TEST MQTT - Connexio HiveMQ Cloud
 // ESP32 generic (qualsevol placa amb WiFi)
 // Envia valors aleatoris als topics boia/*
+//
+// Replica la logica de connexio del receptor real
+// (receptor_mqtt.ino) per validar:
+//   - Connexio WiFi amb reconnexio automatica
+//   - Sincronitzacio NTP amb timeout
+//   - Connexio MQTT TLS amb certificat CA
+//   - Publicacio JSON a tots els topics
+//   - Reconnexio automatica WiFi i MQTT
+//
+// Canviar WIFI_SSID, WIFI_PASSWORD, MQTT_SERVER,
+// MQTT_USER, MQTT_PASSWORD abans de compilar.
 // ============================================
 
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <PubSubClient.h>
 
-// --- WiFi ---
-#define WIFI_SSID      "icon"
-#define WIFI_PASSWORD  "rosroca22"
+// --- WiFi (modem 4G o xarxa local) ---
+#define WIFI_SSID              "icon"
+#define WIFI_PASSWORD          "rosroca22"
+#define WIFI_TIMEOUT_MS        15000     // Temps maxim per connectar WiFi (ms)
+#define WIFI_RECONNECT_MS      30000     // Interval entre intents de reconnexio WiFi (ms)
 
-// --- MQTT HiveMQ Cloud ---
-#define MQTT_SERVER    "e4382cc71099477ba76ea212327f55d3.s1.eu.hivemq.cloud"
-#define MQTT_PORT      8883
-#define MQTT_USER      "root"
-#define MQTT_PASSWORD  "rosroca22"
-#define MQTT_CLIENT_ID "test_esp32_boia"
+// --- MQTT (HiveMQ Cloud - TLS obligatori) ---
+#define MQTT_SERVER            "e4382cc71099477ba76ea212327f55d3.s1.eu.hivemq.cloud"
+#define MQTT_PORT              8883
+#define MQTT_USER              "root"
+#define MQTT_PASSWORD          "rosroca22"
+#define MQTT_CLIENT_ID         "test_esp32_boia"
+#define MQTT_RECONNECT_MS      5000      // Interval entre intents reconnexio MQTT (ms)
 
-// --- Topics (mateixos que el receptor real) ---
-#define MQTT_TOPIC_STATUS  "boia/status"
-#define MQTT_TOPIC_OUTPUTS "boia/outputs"
-#define MQTT_TOPIC_INPUTS  "boia/inputs"
-#define MQTT_TOPIC_DEYE    "boia/deye"
-#define MQTT_TOPIC_LORA    "boia/lora"
-#define MQTT_TOPIC_LOCALS  "boia/locals"
+// Topics MQTT (publicacio) - canviar prefix per adaptar a client
+#define MQTT_TOPIC_PREFIX      "boia/"
+#define MQTT_TOPIC_STATUS      MQTT_TOPIC_PREFIX "status"
+#define MQTT_TOPIC_OUTPUTS     MQTT_TOPIC_PREFIX "outputs"
+#define MQTT_TOPIC_INPUTS      MQTT_TOPIC_PREFIX "inputs"
+#define MQTT_TOPIC_DEYE        MQTT_TOPIC_PREFIX "deye"
+#define MQTT_TOPIC_LORA        MQTT_TOPIC_PREFIX "lora"
+#define MQTT_TOPIC_LOCALS      MQTT_TOPIC_PREFIX "locals"
+#define MQTT_PUBLISH_INTERVAL_MS  30000  // Cada 30 segons (mes rapid que receptor per testejar)
 
-// --- Interval publicacio ---
-#define PUBLISH_INTERVAL_MS  30000  // Cada 10 segons (mes rapid per testejar)
-
-// Certificat root ISRG Root X1 (Let's Encrypt) - HiveMQ Cloud
+// Certificat root ISRG Root X1 (Let's Encrypt) - utilitzat per HiveMQ Cloud
+// Valid fins 2035-06-04
 static const char *root_ca PROGMEM = R"EOF(
 -----BEGIN CERTIFICATE-----
 MIIFazCCA1OgAwIBAgIRAIIQz7DSQONZRGPgu2OCiwAwDQYJKoZIhvcNAQELBQAw
@@ -65,91 +79,134 @@ AQHfFJJnCi/RPOS5BWoFG/dGo5LcED9xFMOT8OBduGhLS1hDlBMRFsMSGbz0=
 -----END CERTIFICATE-----
 )EOF";
 
+// WiFi + MQTT (TLS)
 WiFiClientSecure secureClient;
 PubSubClient mqtt(secureClient);
-unsigned long lastPublish = 0;
+unsigned long lastWifiAttempt = 0;
+unsigned long lastMqttAttempt = 0;
+unsigned long lastMqttPublish = 0;
+bool wifiConnected = false;
+bool mqttConnected = false;
+bool ntpSynced = false;
 uint32_t publishCount = 0;
 
-void setup() {
-  Serial.begin(115200);
-  delay(1000);
-  Serial.println("\n========================================");
-  Serial.println("  TEST MQTT - HiveMQ Cloud");
-  Serial.println("  Envia dades aleatories als topics boia/*");
-  Serial.println("========================================\n");
-
-  // --- WiFi ---
-  Serial.printf("WiFi: connectant a '%s'...\n", WIFI_SSID);
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-
-  int tries = 0;
-  while (WiFi.status() != WL_CONNECTED && tries < 40) {
-    delay(500);
-    Serial.print(".");
-    tries++;
-  }
-  Serial.println();
-
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.printf("WiFi: OK! IP: %s\n", WiFi.localIP().toString().c_str());
-  } else {
-    Serial.println("WiFi: ERROR - no s'ha pogut connectar!");
-    Serial.println("Revisa WIFI_SSID i WIFI_PASSWORD al codi");
-    while (1) delay(1000);
-  }
-
-  // --- NTP (necessari per validar certificat TLS) ---
+// ============================================
+// WiFi + NTP (identic al receptor real)
+// ============================================
+void syncNTP() {
+  if (ntpSynced) return;
   Serial.println("NTP: sincronitzant rellotge...");
   configTime(3600, 3600, "pool.ntp.org", "time.nist.gov");
-  while (time(nullptr) < 100000) {
+  unsigned long start = millis();
+  while (time(nullptr) < 100000 && (millis() - start < 10000)) {
     delay(250);
-    Serial.print(".");
   }
-  Serial.println();
   time_t now = time(nullptr);
-  Serial.printf("NTP: OK! %s", ctime(&now));
-
-  // --- MQTT ---
-  secureClient.setCACert(root_ca);
-  mqtt.setServer(MQTT_SERVER, MQTT_PORT);
-  mqtt.setKeepAlive(60);
-  mqtt.setSocketTimeout(10);
-  mqtt.setBufferSize(512);
-
-  // Seed random amb soroll analogic
-  randomSeed(analogRead(0) + millis());
-
-  Serial.println("\nSetup complet. Intentant connectar a MQTT...\n");
+  if (now > 100000) {
+    ntpSynced = true;
+    Serial.printf("NTP: sincronitzat! %s", ctime(&now));
+  } else {
+    Serial.println("NTP: error sincronitzacio (reintentara)");
+  }
 }
 
-bool mqttConnect() {
-  if (mqtt.connected()) return true;
+void wifiSetup() {
+  WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(true);
+  Serial.printf("WiFi: connectant a '%s'...\r\n", WIFI_SSID);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
-  Serial.printf("MQTT: connectant a %s:%d (TLS)...\n", MQTT_SERVER, MQTT_PORT);
+  unsigned long start = millis();
+  while (WiFi.status() != WL_CONNECTED && (millis() - start < WIFI_TIMEOUT_MS)) {
+    delay(250);
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+    wifiConnected = true;
+    Serial.printf("WiFi: connectat! IP: %s\r\n", WiFi.localIP().toString().c_str());
+    syncNTP();
+  } else {
+    wifiConnected = false;
+    Serial.println("WiFi: no s'ha pogut connectar (reintentara)");
+  }
+  lastWifiAttempt = millis();
+}
+
+void wifiReconnect() {
+  if (WiFi.status() == WL_CONNECTED) {
+    if (!wifiConnected) {
+      wifiConnected = true;
+      Serial.printf("WiFi: reconnectat! IP: %s\r\n", WiFi.localIP().toString().c_str());
+      if (!ntpSynced) syncNTP();
+    }
+    return;
+  }
+
+  wifiConnected = false;
+  if (millis() - lastWifiAttempt < WIFI_RECONNECT_MS) return;
+
+  Serial.println("WiFi: reintentant connexio...");
+  WiFi.disconnect();
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  lastWifiAttempt = millis();
+}
+
+// ============================================
+// MQTT (identic al receptor real)
+// ============================================
+void mqttSetup() {
+  secureClient.setCACert(root_ca);
+  mqtt.setServer(MQTT_SERVER, MQTT_PORT);
+  mqtt.setBufferSize(512);
+}
+
+void mqttReconnect() {
+  if (!wifiConnected || !ntpSynced) {
+    mqttConnected = false;
+    return;
+  }
+
+  if (mqtt.connected()) {
+    if (!mqttConnected) {
+      mqttConnected = true;
+      Serial.println("MQTT: connectat a HiveMQ Cloud!");
+    }
+    return;
+  }
+
+  mqttConnected = false;
+  if (millis() - lastMqttAttempt < MQTT_RECONNECT_MS) return;
+
+  Serial.printf("MQTT: connectant a %s:%d (TLS)...\r\n", MQTT_SERVER, MQTT_PORT);
+  lastMqttAttempt = millis();
 
   bool ok = mqtt.connect(MQTT_CLIENT_ID, MQTT_USER, MQTT_PASSWORD,
                          MQTT_TOPIC_STATUS, 1, true, "offline");
 
   if (ok) {
-    Serial.println("MQTT: CONNECTAT OK!");
-    mqtt.publish(MQTT_TOPIC_STATUS, "online (test)", true);
-    return true;
+    mqttConnected = true;
+    Serial.println("MQTT: connectat a HiveMQ Cloud!");
+    mqtt.publish(MQTT_TOPIC_STATUS, "online", true);
   } else {
-    Serial.printf("MQTT: ERROR rc=%d\n", mqtt.state());
+    Serial.printf("MQTT: error connexio, rc=%d\r\n", mqtt.state());
     Serial.println("  -2=connexio fallida (revisa URL/port/certificat)");
     Serial.println("  -1=connexio perduda");
     Serial.println("   4=credencials incorrectes (revisa user/password)");
     Serial.println("   5=no autoritzat");
-    return false;
   }
 }
 
-void publishTestData() {
+// ============================================
+// Publicacio dades simulades
+// Format JSON identic al receptor real
+// ============================================
+void mqttPublishAll() {
+  if (!mqttConnected) return;
+
   char buf[256];
   publishCount++;
 
-  Serial.printf("\n--- Publicacio #%lu ---\n", publishCount);
+  Serial.printf("\n--- Publicacio #%lu ---\r\n", publishCount);
 
   // Sortides (valors aleatoris 0/1)
   int out1 = random(0, 2);
@@ -161,14 +218,14 @@ void publishTestData() {
     "{\"out1\":%d,\"out2\":%d,\"out3\":%d,\"out4\":%d,\"out1_min\":%.1f}",
     out1, out2, out3, out4, out1Min);
   mqtt.publish(MQTT_TOPIC_OUTPUTS, buf);
-  Serial.printf("  %s: %s\n", MQTT_TOPIC_OUTPUTS, buf);
+  Serial.printf("  %s: %s\r\n", MQTT_TOPIC_OUTPUTS, buf);
 
   // Entrades LoRa (valors aleatoris 0/1)
   snprintf(buf, sizeof(buf),
     "{\"in1\":%d,\"in2\":%d,\"in3\":%d,\"in4\":%d}",
     random(0, 2), random(0, 2), random(0, 2), random(0, 2));
   mqtt.publish(MQTT_TOPIC_INPUTS, buf);
-  Serial.printf("  %s: %s\n", MQTT_TOPIC_INPUTS, buf);
+  Serial.printf("  %s: %s\r\n", MQTT_TOPIC_INPUTS, buf);
 
   // Deye (SOC 20-100%, PV 0-6000W)
   int soc = random(20, 101);
@@ -177,42 +234,71 @@ void publishTestData() {
     "{\"soc\":%d,\"pv_power\":%d}",
     soc, pvPower);
   mqtt.publish(MQTT_TOPIC_DEYE, buf);
-  Serial.printf("  %s: %s\n", MQTT_TOPIC_DEYE, buf);
+  Serial.printf("  %s: %s\r\n", MQTT_TOPIC_DEYE, buf);
 
   // LoRa (RSSI -120 a -20 dBm)
   int rssi = random(-120, -19);
   snprintf(buf, sizeof(buf),
     "{\"connected\":%s,\"rssi\":%d,\"rx_ok\":%lu,\"rx_err\":%d}",
-    random(0, 10) > 1 ? "true" : "false",  // 80% connectat
+    random(0, 10) > 1 ? "true" : "false",
     rssi, publishCount * 30, random(0, 5));
   mqtt.publish(MQTT_TOPIC_LORA, buf);
-  Serial.printf("  %s: %s\n", MQTT_TOPIC_LORA, buf);
+  Serial.printf("  %s: %s\r\n", MQTT_TOPIC_LORA, buf);
 
   // Entrades locals
   snprintf(buf, sizeof(buf),
     "{\"boia_bomba\":%d,\"switch_mc\":%d,\"pot_max_min\":%d}",
     random(0, 2), random(0, 2), random(30, 241));
   mqtt.publish(MQTT_TOPIC_LOCALS, buf);
-  Serial.printf("  %s: %s\n", MQTT_TOPIC_LOCALS, buf);
+  Serial.printf("  %s: %s\r\n", MQTT_TOPIC_LOCALS, buf);
+
+  lastMqttPublish = millis();
 
   Serial.println("  PUBLICAT OK!");
-  lastPublish = millis();
 }
 
+// ============================================
+// SETUP
+// ============================================
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+  Serial.println("\n========================================");
+  Serial.println("  TEST MQTT - HiveMQ Cloud");
+  Serial.println("  Replica connexio del receptor real");
+  Serial.println("  Envia dades simulades als topics");
+  Serial.printf("  Prefix topics: %s\n", MQTT_TOPIC_PREFIX);
+  Serial.println("========================================\n");
+
+  // Seed random amb soroll analogic
+  randomSeed(analogRead(0) + millis());
+
+  // WiFi (mateixa logica que receptor)
+  wifiSetup();
+
+  // MQTT (mateixa logica que receptor)
+  mqttSetup();
+
+  Serial.println("\nSetup complet.\n");
+}
+
+// ============================================
+// LOOP (mateixa estructura que receptor)
+// ============================================
 void loop() {
-  // Reconnectar si cal
-  if (!mqtt.connected()) {
-    if (!mqttConnect()) {
-      Serial.println("Reintentant en 5 segons...");
-      delay(5000);
-      return;
-    }
+  // --- WiFi reconnexio ---
+  wifiReconnect();
+
+  // --- MQTT reconnexio i loop ---
+  mqttReconnect();
+  if (mqttConnected) {
+    mqtt.loop();
   }
 
-  mqtt.loop();
-
-  // Publicar cada PUBLISH_INTERVAL_MS
-  if (millis() - lastPublish >= PUBLISH_INTERVAL_MS) {
-    publishTestData();
+  // --- Publicar cada MQTT_PUBLISH_INTERVAL_MS ---
+  if (mqttConnected && (millis() - lastMqttPublish >= MQTT_PUBLISH_INTERVAL_MS)) {
+    mqttPublishAll();
   }
+
+  delay(100);
 }
