@@ -28,7 +28,7 @@
 #define MQTT_TOPIC_LOCALS  "boia/locals"
 
 // --- Interval publicacio ---
-#define PUBLISH_INTERVAL_MS  60000  // Cada 10 segons (mes rapid per testejar)
+#define PUBLISH_INTERVAL_MS  30000  // Cada 10 segons (mes rapid per testejar)
 
 // Certificat root ISRG Root X1 (Let's Encrypt) - HiveMQ Cloud
 static const char *root_ca PROGMEM = R"EOF(
@@ -111,7 +111,7 @@ void setup() {
   Serial.printf("NTP: OK! %s", ctime(&now));
 
   // --- MQTT ---
-  secureClient.setInsecure();
+  secureClient.setCACert(root_ca);
   mqtt.setServer(MQTT_SERVER, MQTT_PORT);
   mqtt.setKeepAlive(60);
   mqtt.setSocketTimeout(10);
