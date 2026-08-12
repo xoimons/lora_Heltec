@@ -1,7 +1,7 @@
 ================================================================================
   SISTEMA LORA PUNT A PUNT - MONITORATGE BOIA
   Document de referencia del projecte (per imprimir)
-  Data: Juny 2026  (rev.4: switch mitja carrega, SOC -1 no limita, boia bomba)
+  Data: Agost 2026  (rev.5: logica fail-safe NC/NO per boies, inversio IN1/IN2/IN3)
 ================================================================================
 
 
@@ -95,9 +95,9 @@ Sistema de comunicacio LoRa punt a punt amb dues plaques PCB identiques:
   ENTRADES (emissor):
   GPIO    Funcio          Connector    Nota
   ----    ------          ---------    ----
-  1       Entrada 1       J_IN         Boia senyal 1 (nivell minim)
-  2       Entrada 2       J_IN         Boia senyal 2 (nivell maxim)
-  4       Entrada 3       J_IN         Boia senyal 3 (nivell intermig)
+  1       Entrada 1       J_IN         Boia senyal 1 (nivell minim), contacte NC. 1=falta aigua, 0=te aigua/desconnectada
+  2       Entrada 2       J_IN         Boia senyal 2 (nivell maxim), contacte NC. 1=falta aigua, 0=te aigua/desconnectada
+  4       Entrada 3       J_IN         Boia senyal 3 (nivell intermig), contacte NC. 1=falta aigua, 0=te aigua/desconnectada
   5       Entrada 4       J_IN         Reserva
 
   ENTRADES (receptor):
@@ -105,7 +105,7 @@ Sistema de comunicacio LoRa punt a punt amb dues plaques PCB identiques:
   ----    ------                  ---------    ----
   1       Switch mitja carrega    J_IN         Pull-down. 1=mitja carrega activa (condiciona OUT1 amb IN2 LoRa)
   2       Potenciometre           J_IN         Durada maxima bomba, 0-240 min / 0-4h (ADC1, 500ohm, pull-down 4.7k)
-  5       Boia diposit bomba      J_IN         Pull-down. 1=aigua detectada, 0=sense aigua (proteccio marxa en sec)
+  5       Boia diposit bomba      J_IN         Pull-down, contacte NO. 1=aigua detectada, 0=sense aigua/desconnectada (fail-safe marxa en sec)
 
   SORTIDES (receptor):
   GPIO    Funcio          Connector    Nota
@@ -582,27 +582,40 @@ Contingut OLED receptor (4 linies):
   - Errors CRC es compten pero no activen sortides
   - Radio.IrqProcess() es crida entre les dues lectures Modbus per evitar perdua de paquets LoRa durant el bloqueig RS485
 
-  Logica de control bomba (OUT1):
+  Logica de control bomba (OUT1) - VERSIO FAIL-SAFE:
+
+  Cablejat boies: contacte NC (Normally Closed) per IN1/IN2/IN3 (emissor)
+                  contacte NO (Normally Open) per boiaBomba (receptor local)
+
+  Taula de senyals amb NC (boies emissor IN1/IN2/IN3):
+  - Boia avall (falta aigua) = NC tancat = pin HIGH = 1
+  - Boia amunt (hi ha aigua) = NC obert  = pin LOW  = 0
+  - Boia desconnectada/trencada          = pin LOW  = 0 (fail-safe: bomba OFF)
+
+  Taula de senyals amb NO (boiaBomba receptor local):
+  - Boia amunt (hi ha aigua) = NO tancat = pin HIGH = 1
+  - Boia avall (sec)         = NO obert  = pin LOW  = 0
+  - Boia desconnectada/trencada          = pin LOW  = 0 (fail-safe: para bomba)
 
   Arrenca si TOTES les condicions es compleixen:
-  - IN1 LoRa = 0 (diposit desti buit)
-  - Boia bomba = 1 (diposit bomba amb aigua)
+  - IN1 LoRa = 1 (falta aigua al diposit desti, NC tancat)
+  - Boia bomba = 1 (diposit bomba amb aigua, NO tancat)
   - SOC >= 30% (si dades Deye disponibles)
 
   Para si QUALSEVOL condicio es compleix:
-  - IN1 LoRa = 1 (diposit desti ple)
-  - Boia bomba = 0 (proteccio marxa en sec)
+  - IN1 LoRa = 0 (diposit desti te aigua O boia desconnectada, fail-safe)
+  - Boia bomba = 0 (proteccio marxa en sec O boia desconnectada, fail-safe)
   - SOC <= 20% (bateria baixa, histeresi 20-30%)
-  - Switch mitja carrega = 1 I IN2 LoRa = 1 (parada per mitja carrega)
+  - Switch mitja carrega = 1 I IN2 LoRa = 0 (nivell intermig assolit O boia desconnectada)
   - Potenciometre: temps maxim assolit (0-4h)
   - Timeout LoRa: 150s sense rebre paquet (safety shutdown total)
 
   Prioritat d'avaluacio (de mes a menys prioritat):
-  1. Boia bomba = 0 -> para (marxa en sec)
-  2. Switch mitja carrega + IN2 LoRa -> para
-  3. IN1 = 0 + SOC OK -> arrenca
-  4. IN1 = 0 + SOC insuficient -> para
-  5. IN1 = 1 -> para (diposit ple)
+  1. Boia bomba = 0 -> para (marxa en sec / desconnectada)
+  2. Switch mitja carrega + IN2 LoRa = 0 -> para
+  3. IN1 = 1 + SOC OK -> arrenca (falta aigua)
+  4. IN1 = 1 + SOC insuficient -> para
+  5. IN1 = 0 -> para (diposit ple / boia desconnectada)
 
   Histeresi SOC:
   - Arrancar: SOC >= 30% (DEYE_SOC_START)

@@ -1,5 +1,5 @@
 # DECISIONS TÈCNIQUES DEL PROJECTE - HELTEC LORA V3
-Data revisió: Juny 2026 (rev.5 - Corregit: MAX485ED a 5V + divisor tensió RO, registres monofàsic)
+Data revisió: Agost 2026 (rev.6 - Logica fail-safe NC/NO per boies, inversio IN1/IN2/IN3 al receptor)
 
 ---
 
@@ -44,7 +44,8 @@ El modul Heltec V3 mostra el contingut invertit verticalment segons l'orientacio
 ### Canvi display receptor: boies en lloc de RSSI
 La línia 4 del display del receptor mostrava temps des de l'últim RX i RSSI.
 Canviat per mostrar l'estat de les boies rebudes per LoRa: `IN: 1  0  1  0`
-(IN1=boia baixa, IN2=boia alta, IN3=boia mig, IN4=reserva).
+(IN1=boia nivell minim, IN2=boia nivell maxim, IN3=boia nivell intermig, IN4=reserva).
+Amb fail-safe NC: valor 1=falta aigua (NC tancat), valor 0=te aigua o desconnectada (NC obert/fail-safe).
 
 ### Arduino IDE Board
 **Board:** `WiFi LoRa 32(V3) / Wireless Shell(V3)` (paquet Heltec ESP32)
@@ -56,12 +57,12 @@ Canviat per mostrar l'estat de les boies rebudes per LoRa: `IN: 1  0  1  0`
 ## 3. ASSIGNACIÓ DE PINS DEFINITIVA
 
 ### Entrades (Emissor - camp)
-| Senyal | GPIO | Nota |
-|--------|------|------|
-| IN1 (Boia 1) | GPIO1 | Nivell mínim (dipòsit buit) |
-| IN2 (Boia 2) | GPIO2 | Nivell màxim (dipòsit ple) |
-| IN3 (Boia 3) | GPIO4 | Nivell intermig |
-| IN4 (Reserva) | GPIO5 | |
+| Senyal | GPIO | Contacte | Nota |
+|--------|------|----------|------|
+| IN1 (Boia 1) | GPIO1 | NC | Nivell mínim. NC: 1=falta aigua, 0=te aigua/desconnectada |
+| IN2 (Boia 2) | GPIO2 | NC | Nivell màxim. NC: 1=falta aigua, 0=te aigua/desconnectada |
+| IN3 (Boia 3) | GPIO4 | NC | Nivell intermig. NC: 1=falta aigua, 0=te aigua/desconnectada |
+| IN4 (Reserva) | GPIO5 | - | |
 
 ### Entrades (Receptor - sala tècnica)
 | Senyal | GPIO | Nota |
@@ -152,23 +153,35 @@ Connector IN ──[ 1kΩ ]──┬── GPIOx
 
 ---
 
-## 6. LÒGICA DE CONTROL BOMBA (OUT1) — rev.5 (Juny 2026)
+## 6. LÒGICA DE CONTROL BOMBA (OUT1) — rev.6 (Agost 2026, fail-safe NC/NO)
+
+### Cablejat fail-safe de les boies (rev.6 - Agost 2026)
+
+| Boia | Contacte | Motiu fail-safe |
+|------|----------|-----------------|
+| IN1 (nivell mínim, emissor) | **NC** | Desconnectada=0=bomba OFF |
+| IN2 (nivell màxim, emissor) | **NC** | Desconnectada=0=sortida OFF |
+| IN3 (nivell intermig, emissor) | **NC** | Desconnectada=0=sortida OFF |
+| BOIA_BOMBA (local receptor) | **NO** | Desconnectada=0=para bomba (marxa en sec) |
+
+Amb NC (emissor): boia avall (falta aigua) = NC tancat = 1, boia amunt (hi ha aigua) = NC obert = 0, desconnectada = 0
+Amb NO (boiaBomba): boia amunt (aigua) = NO tancat = 1, boia avall (sec) = NO obert = 0, desconnectada = 0
 
 ### Entrades que afecten OUT1
 | Entrada | Origen | Funció |
 |---------|--------|--------|
-| IN1 (LoRa, bit 0) | Emissor, boia dipòsit destí | 0=buit (arrancar), 1=te aigua (parar) |
-| BOIA_BOMBA (GPIO5) | Local receptor, boia dipòsit bomba | 1=aigua (permesa arrencada), 0=sec (protecció marxa en sec) |
+| IN1 (LoRa, bit 0) | Emissor, boia dipòsit destí (NC) | 1=falta aigua (arrancar), 0=te aigua o desconnectada (parar, fail-safe) |
+| BOIA_BOMBA (GPIO5) | Local receptor, boia dipòsit bomba (NO) | 1=aigua (permesa arrencada), 0=sec o desconnectada (protecció marxa en sec, fail-safe) |
 | SOC bateria | Deye via Modbus RS485 | Histèresi: arrenca >=30%, para <=20% |
 
 ### Condicions d'arrencada i parada
 | Condició | Acció |
 |----------|-------|
-| IN1=0 + boiaBomba=1 + SOC>=30% | **Arrenca** bomba |
-| IN1=0 + boiaBomba=1 + SOC entre 20-30% | Manté estat actual (histèresi SOC) |
-| IN1=0 + SOC<20% | **Para** bomba (log "SOC baix: OUT1 desactivada") |
-| IN1=0 + boiaBomba=0 | **Para** bomba (protecció marxa en sec) |
-| IN1=1 | **Para** bomba (dipòsit destí té aigua) |
+| IN1=1 + boiaBomba=1 + SOC>=30% | **Arrenca** bomba |
+| IN1=1 + boiaBomba=1 + SOC entre 20-30% | Manté estat actual (histèresi SOC) |
+| IN1=1 + SOC<20% | **Para** bomba (log "SOC baix: OUT1 desactivada") |
+| IN1=1 + boiaBomba=0 | **Para** bomba (protecció marxa en sec) |
+| IN1=0 | **Para** bomba (dipòsit destí té aigua O boia desconnectada, fail-safe) |
 | Dades Deye no disponibles (SOC=-1) | **Bloqueja** arrencada per seguretat |
 | Timeout LoRa (150s sense paquet) | **Para** totes les sortides (safety shutdown) |
 | Potenciòmetre durada màxima assolida | **Para** només OUT1 (OUT2/3/4 segueixen) |
@@ -176,9 +189,9 @@ Connector IN ──[ 1kΩ ]──┬── GPIOx
 ### Sortides OUT2, OUT3, OUT4
 | Sortida | GPIO | Lògica |
 |---------|------|--------|
-| OUT2 | 7 | Replica directa IN2 LoRa |
-| OUT3 | 47 | Replica directa IN3 LoRa |
-| OUT4 | 48 | Replica directa IN4 LoRa |
+| OUT2 | 7 | Replica invertida IN2 LoRa (NC: 0=nivell assolit/desconnectada→OFF, 1=falta nivell→ON) |
+| OUT3 | 47 | Replica invertida IN3 LoRa (NC: 0=nivell assolit/desconnectada→OFF, 1=falta nivell→ON) |
+| OUT4 | 48 | Replica directa IN4 LoRa (reserva, sense inversió) |
 
 No tenen condicions de SOC, potenciòmetre ni boia bomba. Es paren només per safety shutdown (timeout LoRa).
 
@@ -375,5 +388,5 @@ Per a futures revisions, substituir per **MAX3485ESA+** (3.3V natiu):
 
 ---
 
-**Data actualització**: Juny 2026
-**Versió document**: rev.5
+**Data actualització**: Agost 2026
+**Versió document**: rev.6

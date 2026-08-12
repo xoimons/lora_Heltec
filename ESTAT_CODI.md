@@ -1,6 +1,6 @@
 # Estat del codi - Sistema LoRa Monitoratge Boia
 
-## 2026-06-26 - Versio actual
+## 2026-08-10 - Versio actual (fail-safe NC/NO)
 
 ---
 
@@ -38,29 +38,36 @@
 ### Entrades locals
 | Entrada | GPIO | Funcio |
 |---------|------|--------|
-| BOIA_BOMBA | 5 | Boia diposit bomba (1=aigua, 0=sec) |
+| BOIA_BOMBA | 5 | Boia diposit bomba, contacte NO (1=aigua, 0=sec/desconnectada, fail-safe) |
 | POT | 2 | Potenciometre durada maxima OUT1 (0-240 min), cache cada 2s |
 
 ### Sortides
 | Sortida | GPIO | Logica |
 |---------|------|--------|
-| OUT1 | 6 | Bomba - logica condicional |
-| OUT2 | 7 | Replica directa IN2 LoRa |
-| OUT3 | 47 | Replica directa IN3 LoRa |
+| OUT1 | 6 | Bomba - logica condicional fail-safe |
+| OUT2 | 7 | Replica invertida IN2 LoRa (NC fail-safe) |
+| OUT3 | 47 | Replica invertida IN3 LoRa (NC fail-safe) |
 | OUT4 | 48 | Replica directa IN4 LoRa |
 
-### Logica OUT1 (bomba)
+### Cablejat fail-safe boies
+| Boia | Contacte | Desconnectada = | Fail-safe |
+|------|----------|-----------------|-----------|
+| IN1/IN2/IN3 (emissor) | NC | 0 = bomba/sortida OFF | Si |
+| BOIA_BOMBA (receptor) | NO | 0 = para bomba | Si |
+
+### Logica OUT1 (bomba) - FAIL-SAFE
 
 **Arrencada** (totes certes):
-- `IN1 = 0` via LoRa (diposit desti buit)
-- `boiaBomba = 1` (diposit bomba te aigua)
+- `IN1 = 1` via LoRa (falta aigua al diposit desti, NC tancat)
+- `boiaBomba = 1` (diposit bomba te aigua, NO tancat)
 - `SOC >= 30%` (Deye disponible i amb prou carrega)
 
 **Parada** (qualsevol):
-- `IN1 = 1` via LoRa (diposit desti te aigua)
-- `boiaBomba = 0` (proteccio marxa en sec)
+- `IN1 = 0` via LoRa (diposit desti te aigua O boia desconnectada, fail-safe)
+- `boiaBomba = 0` (proteccio marxa en sec O boia desconnectada, fail-safe)
 - `SOC <= 20%` (bateria baixa)
 - `SOC = -1` (sense comunicacio Deye - bloqueja per seguretat)
+- `switchMitjaCarrega = 1 I IN2 = 0` (nivell intermig assolit O boia desconnectada)
 - Potenciometre durada maxima assolida (nomes para OUT1, no afecta OUT2/3/4)
 - Timeout RX 150s sense comunicacio LoRa (safety shutdown, para totes les sortides)
 
