@@ -16,8 +16,8 @@
 // --- MQTT (HiveMQ Cloud - TLS obligatori) ---
 #define MQTT_SERVER    "CANVIAR.s1.eu.hivemq.cloud"  // URL del cluster HiveMQ Cloud (veure dashboard)
 #define MQTT_PORT      8883                           // Port MQTT amb TLS (obligatori HiveMQ Cloud)
-#define MQTT_USER      "CANVIAR_USUARI"               // Usuari creat a Access Management de HiveMQ
-#define MQTT_PASSWORD  "CANVIAR_PASSWORD"              // Contrasenya creada a Access Management
+#define MQTT_USER      "Ossera"                       // Usuari creat a Access Management de HiveMQ
+#define MQTT_PASSWORD  "Ossera_26"                    // Contrasenya creada a Access Management
 #define MQTT_CLIENT_ID "receptor_lora_boia"            // ID unic del client MQTT
 #define MQTT_RECONNECT_MS     5000                     // Interval entre intents reconnexio MQTT (ms)
 

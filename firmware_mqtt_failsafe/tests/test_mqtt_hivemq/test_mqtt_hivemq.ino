@@ -28,8 +28,8 @@
 // --- MQTT (HiveMQ Cloud - TLS obligatori) ---
 #define MQTT_SERVER            "e4382cc71099477ba76ea212327f55d3.s1.eu.hivemq.cloud"
 #define MQTT_PORT              8883
-#define MQTT_USER              "root"
-#define MQTT_PASSWORD          "rosroca22"
+#define MQTT_USER              "Ossera"
+#define MQTT_PASSWORD          "Ossera_26"
 #define MQTT_CLIENT_ID         "test_esp32_boia"
 #define MQTT_RECONNECT_MS      5000      // Interval entre intents reconnexio MQTT (ms)
 
