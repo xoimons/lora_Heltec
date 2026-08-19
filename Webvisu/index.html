@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ossera Solar - Dashboard</title>
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; }
+
+  /* Login */
+  .login-overlay {
+    position: fixed; inset: 0; background: #1a1a2e;
+    display: flex; align-items: center; justify-content: center; z-index: 100;
+  }
+  .login-box {
+    background: #16213e; padding: 2rem; border-radius: 12px; width: 320px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+  .login-box h2 { text-align: center; margin-bottom: 1.5rem; color: #00d2ff; }
+  .login-box input {
+    width: 100%; padding: 0.6rem 0.8rem; margin-bottom: 1rem; border: 1px solid #334;
+    border-radius: 6px; background: #0f3460; color: #e0e0e0; font-size: 0.95rem;
+  }
+  .login-box input:focus { outline: none; border-color: #00d2ff; }
+  .login-box button {
+    width: 100%; padding: 0.7rem; border: none; border-radius: 6px;
+    background: #00d2ff; color: #1a1a2e; font-weight: 600; font-size: 1rem; cursor: pointer;
+  }
+  .login-box button:hover { background: #00b4d8; }
+  .login-error { color: #ff6b6b; font-size: 0.85rem; margin-bottom: 0.5rem; text-align: center; }
+
+  /* Header */
+  header {
+    background: #16213e; padding: 0.8rem 1.5rem; display: flex;
+    align-items: center; justify-content: space-between; border-bottom: 1px solid #334;
+  }
+  .header-left { display: flex; align-items: center; gap: 0.8rem; }
+  header h1 { font-size: 1.3rem; color: #00d2ff; }
+  .header-right { display: flex; align-items: center; gap: 0.8rem; }
+  #last-update { font-size: 0.75rem; color: #888; }
+
+  /* Status LED in header */
+  .status-led {
+    width: 14px; height: 14px; border-radius: 50%; background: #ff5252;
+    display: inline-block; flex-shrink: 0;
+  }
+  .status-led.online {
+    background: #00c853;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  .status-led.offline { background: #ff5252; }
+
+  /* Dashboard grid */
+  .dashboard {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "tank    pump"
+      "inputs  lora";
+    gap: 1rem; padding: 1rem; max-width: 1000px; margin: 0 auto;
+  }
+  @media (max-width: 600px) {
+    .dashboard {
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        "tank"
+        "pump"
+        "inputs"
+        "lora";
+    }
+  }
+
+  .card {
+    background: #16213e; border-radius: 10px; padding: 1rem 1.2rem;
+    border: 1px solid #334; transition: border-color 0.3s;
+  }
+  .card.flash { border-color: #00d2ff; }
+  .card h3 {
+    font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;
+    color: #00d2ff; margin-bottom: 0.8rem; padding-bottom: 0.4rem;
+    border-bottom: 1px solid #334;
+  }
+
+  .card-lora    { grid-area: lora; }
+  .card-tank    { grid-area: tank; }
+  .card-pump    { grid-area: pump; }
+  .card-inputs  { grid-area: inputs; }
+
+  /* Data rows */
+  .row { display: flex; justify-content: space-between; align-items: center; padding: 0.35rem 0; }
+  .row .label { color: #aaa; font-size: 0.85rem; }
+  .row .value { font-weight: 600; font-size: 0.95rem; }
+
+  .hidden { display: none; }
+
+  /* Logout */
+  #btn-logout {
+    background: none; border: 1px solid #555; color: #aaa; padding: 0.3rem 0.7rem;
+    border-radius: 6px; cursor: pointer; font-size: 0.8rem;
+  }
+  #btn-logout:hover { border-color: #ff5252; color: #ff5252; }
+
+  /* SVG containers */
+  .svg-container { display: flex; justify-content: center; align-items: center; margin: 0.5rem 0; }
+
+  /* ========== ANIMATIONS ========== */
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 4px rgba(0,200,83,0.5); }
+    50% { opacity: 0.5; box-shadow: 0 0 12px rgba(0,200,83,0.8); }
+  }
+  @keyframes wave1 {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 0.9; }
+  }
+  @keyframes wave2 {
+    0%, 100% { opacity: 0.2; }
+    60% { opacity: 0.9; }
+  }
+  @keyframes wave3 {
+    0%, 100% { opacity: 0.2; }
+    70% { opacity: 0.9; }
+  }
+  @keyframes glow {
+    0%, 100% { filter: drop-shadow(0 0 2px rgba(0,200,83,0.3)); }
+    50% { filter: drop-shadow(0 0 8px rgba(0,200,83,0.8)); }
+  }
+
+  /* Pump spinning */
+  .pump-blades { transform-origin: 60px 55px; }
+  .pump-blades.spinning { animation: spin 1s linear infinite; }
+
+  /* LoRa wave animation */
+  .lora-wave.active .wave-arc { animation-play-state: running; }
+  .lora-wave .wave-arc { animation-play-state: paused; opacity: 0.2; }
+  .wave-arc:nth-child(1) { animation: wave1 1.5s ease-in-out infinite; }
+  .wave-arc:nth-child(2) { animation: wave2 1.5s ease-in-out 0.2s infinite; }
+  .wave-arc:nth-child(3) { animation: wave3 1.5s ease-in-out 0.4s infinite; }
+
+  /* Input LEDs */
+  .led-grid { display: flex; justify-content: space-around; align-items: center; padding: 0.5rem 0; flex-wrap: wrap; gap: 1rem; }
+  .led-item { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; }
+  .led-label { font-size: 0.75rem; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; }
+  .led-circle { transition: fill 0.3s, filter 0.3s; }
+  .led-circle.active { animation: glow 1.5s ease-in-out infinite; }
+
+  /* Counters / small stats */
+  .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 0.25rem 0; }
+  .stat-label { font-size: 0.8rem; color: #888; }
+  .stat-value { font-size: 0.9rem; font-weight: 600; color: #e0e0e0; }
+  .stat-value.highlight { color: #ffc107; }
+
+  /* RSSI bars */
+  .rssi-bar { transition: fill 0.3s; }
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<div class="login-overlay" id="login-screen">
+  <div class="login-box">
+    <h2>Ossera Solar</h2>
+    <div class="login-error hidden" id="login-error"></div>
+    <input type="text" id="input-user" placeholder="Usuari" autocomplete="username">
+    <input type="password" id="input-pass" placeholder="Password" autocomplete="current-password">
+    <button id="btn-login">Connectar</button>
+  </div>
+</div>
+
+<!-- Dashboard -->
+<div class="hidden" id="app">
+  <header>
+    <div class="header-left">
+      <span class="status-led offline" id="status-led"></span>
+      <h1>Ossera Solar</h1>
+    </div>
+    <div class="header-right">
+      <span id="last-update"></span>
+      <span id="conn-status" style="display:none;"></span>
+      <button id="btn-logout">Sortir</button>
+    </div>
+  </header>
+
+  <div class="dashboard">
+
+    <!-- LoRa Card -->
+    <div class="card card-lora" id="card-lora">
+      <h3>LoRa</h3>
+      <div class="svg-container">
+        <svg viewBox="0 0 120 90" width="160" height="120">
+          <!-- Antenna -->
+          <line x1="60" y1="75" x2="60" y2="35" stroke="#aaa" stroke-width="3" stroke-linecap="round"/>
+          <line x1="48" y1="75" x2="60" y2="60" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="72" y1="75" x2="60" y2="60" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="60" cy="33" r="3" fill="#aaa"/>
+          <!-- Radio waves -->
+          <g class="lora-wave" id="lora-waves">
+            <path class="wave-arc" d="M 42,28 A 22,22 0 0,1 78,28" fill="none" stroke="#00d2ff" stroke-width="2" stroke-linecap="round"/>
+            <path class="wave-arc" d="M 35,22 A 30,30 0 0,1 85,22" fill="none" stroke="#00d2ff" stroke-width="2" stroke-linecap="round"/>
+            <path class="wave-arc" d="M 28,16 A 38,38 0 0,1 92,16" fill="none" stroke="#00d2ff" stroke-width="2" stroke-linecap="round"/>
+          </g>
+        </svg>
+      </div>
+      <!-- RSSI bars -->
+      <div class="svg-container">
+        <svg viewBox="0 0 60 30" width="80" height="40" id="rssi-bars">
+          <rect class="rssi-bar" x="5"  y="22" width="8" height="8"  rx="1" fill="#555"/>
+          <rect class="rssi-bar" x="17" y="17" width="8" height="13" rx="1" fill="#555"/>
+          <rect class="rssi-bar" x="29" y="11" width="8" height="19" rx="1" fill="#555"/>
+          <rect class="rssi-bar" x="41" y="5"  width="8" height="25" rx="1" fill="#555"/>
+        </svg>
+        <span class="stat-value" id="v-rssi" style="margin-left:0.5rem;color:#ce93d8;">-- dBm</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">RX OK</span>
+        <span class="stat-value" id="v-rxok">--</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">RX Errors</span>
+        <span class="stat-value" id="v-rxerr">--</span>
+      </div>
+    </div>
+
+    <!-- Tank / Diposit Card (Locals) -->
+    <div class="card card-tank" id="card-locals">
+      <h3>Diposit</h3>
+      <div class="svg-container">
+        <svg viewBox="0 0 100 130" width="150" height="195">
+          <!-- Tank body -->
+          <rect x="10" y="10" width="80" height="100" rx="4" fill="none" stroke="#5c6b80" stroke-width="2.5"/>
+          <!-- Water level -->
+          <clipPath id="tank-clip">
+            <rect x="12" y="12" width="76" height="96" rx="3"/>
+          </clipPath>
+          <g clip-path="url(#tank-clip)">
+            <!-- Water body -->
+            <rect id="water-body" x="12" y="108" width="76" height="0" fill="rgba(0,150,255,0.35)">
+              <animate attributeName="y" dur="0.8s" fill="freeze"/>
+              <animate attributeName="height" dur="0.8s" fill="freeze"/>
+            </rect>
+            <!-- Water surface wave -->
+            <g id="water-surface" transform="translate(12,108)">
+              <path d="M 0,2 Q 10,-2 20,2 Q 30,6 40,2 Q 50,-2 60,2 Q 70,6 80,2 L 80,10 L 0,10 Z" fill="rgba(0,180,255,0.5)">
+                <animate attributeName="d" dur="2s" repeatCount="indefinite"
+                  values="M 0,2 Q 10,-2 20,2 Q 30,6 40,2 Q 50,-2 60,2 Q 70,6 80,2 L 80,10 L 0,10 Z;
+                          M 0,2 Q 10,6 20,2 Q 30,-2 40,2 Q 50,6 60,2 Q 70,-2 80,2 L 80,10 L 0,10 Z;
+                          M 0,2 Q 10,-2 20,2 Q 30,6 40,2 Q 50,-2 60,2 Q 70,6 80,2 L 80,10 L 0,10 Z"/>
+              </path>
+            </g>
+          </g>
+          <!-- Float/boia -->
+          <g id="boia-float" transform="translate(50, 105)">
+            <ellipse cx="0" cy="0" rx="14" ry="4" fill="#ff9800" stroke="#e65100" stroke-width="1"/>
+            <line x1="0" y1="-12" x2="0" y2="0" stroke="#e65100" stroke-width="1.5"/>
+            <circle cx="0" cy="-13" r="2.5" fill="#ff9800" stroke="#e65100" stroke-width="1"/>
+          </g>
+          <!-- Tank labels -->
+          <text x="50" y="125" text-anchor="middle" fill="#888" font-size="8" id="tank-level-text">BUIT</text>
+        </svg>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Switch MC</span>
+        <span class="stat-value" id="v-switch-mc">--</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Pot Max/Min</span>
+        <span class="stat-value" id="v-pot">--</span>
+      </div>
+    </div>
+
+    <!-- Pump Card (Outputs) -->
+    <div class="card card-pump" id="card-outputs">
+      <h3>Bomba</h3>
+      <div class="svg-container">
+        <svg viewBox="0 0 120 110" width="160" height="147">
+          <!-- Pump body -->
+          <circle cx="60" cy="55" r="32" fill="none" stroke="#5c6b80" stroke-width="2.5" id="pump-body"/>
+          <!-- Pump inlet/outlet pipes -->
+          <rect x="0" y="48" width="28" height="14" rx="2" fill="#3a4a5c"/>
+          <rect x="92" y="48" width="28" height="14" rx="2" fill="#3a4a5c"/>
+          <!-- Blades / impeller -->
+          <g class="pump-blades" id="pump-blades">
+            <line x1="60" y1="30" x2="60" y2="80" stroke="#aaa" stroke-width="3" stroke-linecap="round"/>
+            <line x1="35" y1="55" x2="85" y2="55" stroke="#aaa" stroke-width="3" stroke-linecap="round"/>
+            <line x1="42" y1="37" x2="78" y2="73" stroke="#aaa" stroke-width="3" stroke-linecap="round"/>
+            <line x1="78" y1="37" x2="42" y2="73" stroke="#aaa" stroke-width="3" stroke-linecap="round"/>
+          </g>
+          <!-- Center hub -->
+          <circle cx="60" cy="55" r="6" fill="#5c6b80" id="pump-hub"/>
+          <!-- Status text -->
+          <text x="60" y="100" text-anchor="middle" fill="#888" font-size="9" id="pump-status-text">PARADA</text>
+        </svg>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">OUT1 Minuts</span>
+        <span class="stat-value highlight" id="v-out1min">--</span>
+      </div>
+      <!-- OUT2-OUT4 as mini LEDs -->
+      <div style="margin-top:0.5rem; border-top:1px solid #334; padding-top:0.5rem;">
+        <div class="led-grid">
+          <div class="led-item">
+            <svg width="24" height="24"><circle cx="12" cy="12" r="9" fill="#444" stroke="#555" stroke-width="1.5" class="led-circle" id="led-out2"/></svg>
+            <span class="led-label">OUT2</span>
+          </div>
+          <div class="led-item">
+            <svg width="24" height="24"><circle cx="12" cy="12" r="9" fill="#444" stroke="#555" stroke-width="1.5" class="led-circle" id="led-out3"/></svg>
+            <span class="led-label">OUT3</span>
+          </div>
+          <div class="led-item">
+            <svg width="24" height="24"><circle cx="12" cy="12" r="9" fill="#444" stroke="#555" stroke-width="1.5" class="led-circle" id="led-out4"/></svg>
+            <span class="led-label">OUT4</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Inputs Card -->
+    <div class="card card-inputs" id="card-inputs">
+      <h3>Inputs</h3>
+      <div class="led-grid" style="padding: 1rem 0;">
+        <div class="led-item">
+          <svg width="40" height="40"><circle cx="20" cy="20" r="15" fill="#333" stroke="#555" stroke-width="2" class="led-circle" id="led-in1"/></svg>
+          <span class="led-label">IN 1</span>
+        </div>
+        <div class="led-item">
+          <svg width="40" height="40"><circle cx="20" cy="20" r="15" fill="#333" stroke="#555" stroke-width="2" class="led-circle" id="led-in2"/></svg>
+          <span class="led-label">IN 2</span>
+        </div>
+        <div class="led-item">
+          <svg width="40" height="40"><circle cx="20" cy="20" r="15" fill="#333" stroke="#555" stroke-width="2" class="led-circle" id="led-in3"/></svg>
+          <span class="led-label">IN 3</span>
+        </div>
+        <div class="led-item">
+          <svg width="40" height="40"><circle cx="20" cy="20" r="15" fill="#333" stroke="#555" stroke-width="2" class="led-circle" id="led-in4"/></svg>
+          <span class="led-label">IN 4</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- .dashboard -->
+</div><!-- #app -->
+
+<script>
+(function() {
+  const BROKER = 'wss://e4382cc71099477ba76ea212327f55d3.s1.eu.hivemq.cloud:8884/mqtt';
+  let client = null;
+
+  // --- Helpers ---
+  const $ = id => document.getElementById(id);
+  const flashCard = id => {
+    const el = $(id);
+    el.classList.add('flash');
+    setTimeout(() => el.classList.remove('flash'), 600);
+  };
+  const updateTime = () => {
+    $('last-update').textContent = 'Darrera dada: ' + new Date().toLocaleTimeString();
+  };
+
+  // --- SVG Update helpers ---
+  function setLed(id, active) {
+    const el = $(id);
+    if (!el) return;
+    el.setAttribute('fill', active ? '#00c853' : (el.r.baseVal.value > 10 ? '#333' : '#444'));
+    el.setAttribute('stroke', active ? '#00e676' : '#555');
+    if (active) {
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  }
+
+  function updateTank(boiaOn) {
+    const waterBody = $('water-body');
+    const waterSurface = $('water-surface');
+    const boiaFloat = $('boia-float');
+    const levelText = $('tank-level-text');
+    // boiaOn: 1 = ple (full), 0 = buit (empty)
+    const waterY = boiaOn ? 32 : 108;
+    const waterH = boiaOn ? 76 : 0;
+    const boiaY = boiaOn ? 35 : 105;
+
+    waterBody.setAttribute('y', waterY);
+    waterBody.setAttribute('height', waterH);
+    waterSurface.setAttribute('transform', 'translate(12,' + (waterY - 4) + ')');
+    boiaFloat.setAttribute('transform', 'translate(50,' + boiaY + ')');
+    levelText.textContent = boiaOn ? 'PLE' : 'BUIT';
+  }
+
+  function updatePump(on) {
+    const blades = $('pump-blades');
+    const body = $('pump-body');
+    const hub = $('pump-hub');
+    const statusText = $('pump-status-text');
+    if (on) {
+      blades.classList.add('spinning');
+      body.setAttribute('stroke', '#00c853');
+      hub.setAttribute('fill', '#00c853');
+      statusText.textContent = 'EN MARXA';
+      statusText.setAttribute('fill', '#00c853');
+    } else {
+      blades.classList.remove('spinning');
+      body.setAttribute('stroke', '#5c6b80');
+      hub.setAttribute('fill', '#5c6b80');
+      statusText.textContent = 'PARADA';
+      statusText.setAttribute('fill', '#888');
+    }
+  }
+
+  function updateLoRa(connected) {
+    const waves = $('lora-waves');
+    if (connected) {
+      waves.classList.add('active');
+    } else {
+      waves.classList.remove('active');
+    }
+  }
+
+  function updateRSSI(rssi) {
+    $('v-rssi').textContent = rssi + ' dBm';
+    const bars = document.querySelectorAll('#rssi-bars .rssi-bar');
+    // RSSI: typically -120 (bad) to -30 (excellent)
+    let level = 0;
+    if (rssi > -60) level = 4;
+    else if (rssi > -75) level = 3;
+    else if (rssi > -90) level = 2;
+    else if (rssi > -105) level = 1;
+    const color = level >= 3 ? '#00c853' : level >= 2 ? '#ffc107' : '#ff5252';
+    bars.forEach((bar, i) => {
+      bar.setAttribute('fill', i < level ? color : '#555');
+    });
+  }
+
+  function updateDeviceStatus(online) {
+    const led = $('status-led');
+    if (online) {
+      led.classList.add('online');
+      led.classList.remove('offline');
+    } else {
+      led.classList.remove('online');
+      led.classList.add('offline');
+    }
+  }
+
+  function updateSwitchMC(val) {
+    const el = $('v-switch-mc');
+    el.textContent = val ? 'ON' : 'OFF';
+    el.style.color = val ? '#00c853' : '#888';
+  }
+
+  // --- Login ---
+  $('btn-login').addEventListener('click', doLogin);
+  $('input-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+  function doLogin() {
+    const user = $('input-user').value.trim();
+    const pass = $('input-pass').value;
+    if (!user || !pass) {
+      showLoginError('Introdueix usuari i password');
+      return;
+    }
+    $('login-error').classList.add('hidden');
+    connectMQTT(user, pass);
+  }
+
+  function showLoginError(msg) {
+    const el = $('login-error');
+    el.textContent = msg;
+    el.classList.remove('hidden');
+  }
+
+  // --- MQTT ---
+  function connectMQTT(user, pass) {
+    setConnStatus('connecting', 'Connectant...');
+
+    client = mqtt.connect(BROKER, {
+      username: user,
+      password: pass,
+      clientId: 'dashboard_' + Math.random().toString(16).slice(2, 8),
+      protocolVersion: 4,
+      reconnectPeriod: 5000,
+      connectTimeout: 10000,
+    });
+
+    client.on('connect', () => {
+      setConnStatus('connected', 'Connectat');
+      $('login-screen').classList.add('hidden');
+      $('app').classList.remove('hidden');
+      client.subscribe('boia/#', { qos: 0 });
+    });
+
+    client.on('error', err => {
+      if ($('login-screen').classList.contains('hidden')) {
+        setConnStatus('disconnected', 'Error');
+      } else {
+        client.end(true);
+        client = null;
+        setConnStatus('disconnected', 'Desconnectat');
+        if (err.message && err.message.includes('Not authorized')) {
+          showLoginError('Credencials incorrectes');
+        } else {
+          showLoginError('Error de connexio: ' + (err.message || err));
+        }
+      }
+    });
+
+    client.on('offline', () => setConnStatus('disconnected', 'Desconnectat'));
+    client.on('reconnect', () => setConnStatus('connecting', 'Reconnectant...'));
+
+    client.on('message', (topic, payload) => {
+      const msg = payload.toString();
+      handleMessage(topic, msg);
+    });
+  }
+
+  function setConnStatus(cls, text) {
+    const el = $('conn-status');
+    el.textContent = text;
+  }
+
+  // --- Message handler ---
+  function handleMessage(topic, msg) {
+    updateTime();
+
+    if (topic === 'boia/status') {
+      const online = msg.toLowerCase().includes('online');
+      updateDeviceStatus(online);
+      flashCard('card-locals');
+      return;
+    }
+
+    let data;
+    try { data = JSON.parse(msg); } catch { return; }
+
+    switch (topic) {
+      case 'boia/outputs':
+        updatePump(data.out1);
+        setLed('led-out2', data.out2);
+        setLed('led-out3', data.out3);
+        setLed('led-out4', data.out4);
+        $('v-out1min').textContent = data.out1_min + ' min';
+        flashCard('card-outputs');
+        break;
+
+      case 'boia/inputs':
+        setLed('led-in1', data.in1);
+        setLed('led-in2', data.in2);
+        setLed('led-in3', data.in3);
+        setLed('led-in4', data.in4);
+        flashCard('card-inputs');
+        break;
+
+      case 'boia/lora':
+        updateLoRa(data.connected);
+        updateRSSI(data.rssi);
+        $('v-rxok').textContent = data.rx_ok;
+        $('v-rxerr').textContent = data.rx_err;
+        flashCard('card-lora');
+        break;
+
+      case 'boia/locals':
+        updateTank(data.boia_bomba);
+        updateSwitchMC(data.switch_mc);
+        $('v-pot').textContent = data.pot_max_min;
+        flashCard('card-locals');
+        break;
+    }
+  }
+
+  // --- Logout ---
+  $('btn-logout').addEventListener('click', () => {
+    if (client) { client.end(true); client = null; }
+    $('app').classList.add('hidden');
+    $('login-screen').classList.remove('hidden');
+    $('input-pass').value = '';
+    setConnStatus('disconnected', 'Desconnectat');
+    updateDeviceStatus(false);
+  });
+})();
+</script>
+</body>
+</html>
