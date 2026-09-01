@@ -30,7 +30,7 @@
 // --- Temporitzadors ---
 #define TX_INTERVAL_MS       60000   // Enviar cada 60 segons (1 minut)
 #define POLL_INTERVAL_MS     50      // Polling entrades cada 50 ms
-#define DEBOUNCE_CONFIRM_MS  100   // 100ms per confirmar canvi d'estat (100 ms)
+#define DEBOUNCE_CONFIRM_MS  500   // 500ms per confirmar canvi d'estat (500 ms)
 
 // --- Serial ---
 #define SERIAL_BAUD 115200

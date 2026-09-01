@@ -58,7 +58,8 @@
     grid-template-columns: 1fr 1fr;
     grid-template-areas:
       "tank    pump"
-      "inputs  lora";
+      "inputs  lora"
+      "deye    deye";
     gap: 1rem; padding: 1rem; max-width: 1000px; margin: 0 auto;
   }
   @media (max-width: 600px) {
@@ -68,7 +69,8 @@
         "tank"
         "pump"
         "inputs"
-        "lora";
+        "lora"
+        "deye";
     }
   }
 
@@ -87,6 +89,8 @@
   .card-tank    { grid-area: tank; }
   .card-pump    { grid-area: pump; }
   .card-inputs  { grid-area: inputs; }
+  .card-deye    { grid-area: deye; display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+  .card-deye .deye-stats { flex: 1; min-width: 160px; }
 
   /* Data rows */
   .row { display: flex; justify-content: space-between; align-items: center; padding: 0.35rem 0; }
@@ -228,40 +232,82 @@
 
     <!-- Tank / Diposit Card (Locals) -->
     <div class="card card-tank" id="card-locals">
-      <h3>Diposit</h3>
-      <div class="svg-container">
-        <svg viewBox="0 0 100 130" width="150" height="195">
-          <!-- Tank body -->
-          <rect x="10" y="10" width="80" height="100" rx="4" fill="none" stroke="#5c6b80" stroke-width="2.5"/>
-          <!-- Water level -->
-          <clipPath id="tank-clip">
-            <rect x="12" y="12" width="76" height="96" rx="3"/>
-          </clipPath>
-          <g clip-path="url(#tank-clip)">
-            <!-- Water body -->
-            <rect id="water-body" x="12" y="108" width="76" height="0" fill="rgba(0,150,255,0.35)">
-              <animate attributeName="y" dur="0.8s" fill="freeze"/>
-              <animate attributeName="height" dur="0.8s" fill="freeze"/>
-            </rect>
-            <!-- Water surface wave -->
-            <g id="water-surface" transform="translate(12,108)">
-              <path d="M 0,2 Q 10,-2 20,2 Q 30,6 40,2 Q 50,-2 60,2 Q 70,6 80,2 L 80,10 L 0,10 Z" fill="rgba(0,180,255,0.5)">
-                <animate attributeName="d" dur="2s" repeatCount="indefinite"
-                  values="M 0,2 Q 10,-2 20,2 Q 30,6 40,2 Q 50,-2 60,2 Q 70,6 80,2 L 80,10 L 0,10 Z;
-                          M 0,2 Q 10,6 20,2 Q 30,-2 40,2 Q 50,6 60,2 Q 70,-2 80,2 L 80,10 L 0,10 Z;
-                          M 0,2 Q 10,-2 20,2 Q 30,6 40,2 Q 50,-2 60,2 Q 70,6 80,2 L 80,10 L 0,10 Z"/>
-              </path>
-            </g>
-          </g>
-          <!-- Float/boia -->
-          <g id="boia-float" transform="translate(50, 105)">
-            <ellipse cx="0" cy="0" rx="14" ry="4" fill="#ff9800" stroke="#e65100" stroke-width="1"/>
-            <line x1="0" y1="-12" x2="0" y2="0" stroke="#e65100" stroke-width="1.5"/>
-            <circle cx="0" cy="-13" r="2.5" fill="#ff9800" stroke="#e65100" stroke-width="1"/>
-          </g>
-          <!-- Tank labels -->
-          <text x="50" y="125" text-anchor="middle" fill="#888" font-size="8" id="tank-level-text">BUIT</text>
-        </svg>
+      <h3>Diposits</h3>
+      <div style="display:flex; justify-content:space-around; flex-wrap:wrap; gap:0.5rem;">
+        <div style="text-align:center;">
+          <div class="stat-label" style="margin-bottom:0.3rem;">Madern</div>
+          <div class="svg-container" style="margin:0;">
+            <svg viewBox="0 0 100 130" width="120" height="156">
+              <!-- Tank body -->
+              <rect x="10" y="10" width="80" height="100" rx="4" fill="none" stroke="#5c6b80" stroke-width="2.5"/>
+              <!-- Water level -->
+              <clipPath id="tank-clip">
+                <rect x="12" y="12" width="76" height="96" rx="3"/>
+              </clipPath>
+              <g clip-path="url(#tank-clip)">
+                <!-- Water body -->
+                <rect id="water-body" x="12" y="108" width="76" height="0" fill="rgba(0,150,255,0.35)">
+                  <animate attributeName="y" dur="0.8s" fill="freeze"/>
+                  <animate attributeName="height" dur="0.8s" fill="freeze"/>
+                </rect>
+                <!-- Water surface wave -->
+                <g id="water-surface" transform="translate(12,108)">
+                  <path d="M 0,2 Q 10,-2 20,2 Q 30,6 40,2 Q 50,-2 60,2 Q 70,6 80,2 L 80,10 L 0,10 Z" fill="rgba(0,180,255,0.5)">
+                    <animate attributeName="d" dur="2s" repeatCount="indefinite"
+                      values="M 0,2 Q 10,-2 20,2 Q 30,6 40,2 Q 50,-2 60,2 Q 70,6 80,2 L 80,10 L 0,10 Z;
+                              M 0,2 Q 10,6 20,2 Q 30,-2 40,2 Q 50,6 60,2 Q 70,-2 80,2 L 80,10 L 0,10 Z;
+                              M 0,2 Q 10,-2 20,2 Q 30,6 40,2 Q 50,-2 60,2 Q 70,6 80,2 L 80,10 L 0,10 Z"/>
+                  </path>
+                </g>
+              </g>
+              <!-- Float/boia -->
+              <g id="boia-float" transform="translate(50, 105)">
+                <ellipse cx="0" cy="0" rx="14" ry="4" fill="#ff9800" stroke="#e65100" stroke-width="1"/>
+                <line x1="0" y1="-12" x2="0" y2="0" stroke="#e65100" stroke-width="1.5"/>
+                <circle cx="0" cy="-13" r="2.5" fill="#ff9800" stroke="#e65100" stroke-width="1"/>
+              </g>
+              <!-- Tank labels -->
+              <text x="50" y="125" text-anchor="middle" fill="#888" font-size="8" id="tank-level-text">BUIT</text>
+            </svg>
+          </div>
+        </div>
+        <div style="text-align:center;">
+          <div class="stat-label" style="margin-bottom:0.3rem;">Ossera</div>
+          <div class="svg-container" style="margin:0;">
+            <svg viewBox="0 0 100 130" width="120" height="156">
+              <!-- Tank body -->
+              <rect x="10" y="10" width="80" height="100" rx="4" fill="none" stroke="#5c6b80" stroke-width="2.5"/>
+              <!-- Water level -->
+              <clipPath id="tank-clip-2">
+                <rect x="12" y="12" width="76" height="96" rx="3"/>
+              </clipPath>
+              <g clip-path="url(#tank-clip-2)">
+                <!-- Water body -->
+                <rect id="water-body-2" x="12" y="108" width="76" height="0" fill="rgba(0,150,255,0.35)">
+                  <animate attributeName="y" dur="0.8s" fill="freeze"/>
+                  <animate attributeName="height" dur="0.8s" fill="freeze"/>
+                </rect>
+                <!-- Water surface wave -->
+                <g id="water-surface-2" transform="translate(12,108)">
+                  <path d="M 0,2 Q 10,-2 20,2 Q 30,6 40,2 Q 50,-2 60,2 Q 70,6 80,2 L 80,10 L 0,10 Z" fill="rgba(0,180,255,0.5)">
+                    <animate attributeName="d" dur="2s" repeatCount="indefinite"
+                      values="M 0,2 Q 10,-2 20,2 Q 30,6 40,2 Q 50,-2 60,2 Q 70,6 80,2 L 80,10 L 0,10 Z;
+                              M 0,2 Q 10,6 20,2 Q 30,-2 40,2 Q 50,6 60,2 Q 70,-2 80,2 L 80,10 L 0,10 Z;
+                              M 0,2 Q 10,-2 20,2 Q 30,6 40,2 Q 50,-2 60,2 Q 70,6 80,2 L 80,10 L 0,10 Z"/>
+                  </path>
+                </g>
+              </g>
+              <!-- Float/boia -->
+              <g id="boia-float-2" transform="translate(50, 105)">
+                <ellipse cx="0" cy="0" rx="14" ry="4" fill="#ff9800" stroke="#e65100" stroke-width="1"/>
+                <line x1="0" y1="-12" x2="0" y2="0" stroke="#e65100" stroke-width="1.5"/>
+                <circle cx="0" cy="-13" r="2.5" fill="#ff9800" stroke="#e65100" stroke-width="1"/>
+              </g>
+              <!-- Tank labels -->
+              <text x="50" y="125" text-anchor="middle" fill="#888" font-size="8" id="tank-level-text-2">BUIT</text>
+            </svg>
+          </div>
+        </div>
       </div>
       <div class="stat-row">
         <span class="stat-label">Switch MC</span>
@@ -313,7 +359,7 @@
           </div>
           <div class="led-item">
             <svg width="24" height="24"><circle cx="12" cy="12" r="9" fill="#444" stroke="#555" stroke-width="1.5" class="led-circle" id="led-out4"/></svg>
-            <span class="led-label">OUT4</span>
+            <span class="led-label">Diposit Clor Ossera</span>
           </div>
         </div>
       </div>
@@ -338,6 +384,35 @@
         <div class="led-item">
           <svg width="40" height="40"><circle cx="20" cy="20" r="15" fill="#333" stroke="#555" stroke-width="2" class="led-circle" id="led-in4"/></svg>
           <span class="led-label">IN 4</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Deye Inverter Card -->
+    <div class="card card-deye" id="card-deye">
+      <div class="svg-container" style="margin:0;">
+        <svg viewBox="0 0 60 100" width="70" height="115">
+          <rect x="20" y="4" width="20" height="6" rx="2" fill="#5c6b80"/>
+          <rect x="5" y="10" width="50" height="86" rx="4" fill="none" stroke="#5c6b80" stroke-width="2.5"/>
+          <clipPath id="batt-clip"><rect x="7" y="12" width="46" height="82" rx="3"/></clipPath>
+          <g clip-path="url(#batt-clip)">
+            <rect id="batt-fill" x="7" y="94" width="46" height="0" fill="#00c853">
+              <animate attributeName="y" dur="0.8s" fill="freeze"/>
+              <animate attributeName="height" dur="0.8s" fill="freeze"/>
+            </rect>
+          </g>
+          <text x="30" y="55" text-anchor="middle" fill="#e0e0e0" font-size="13" font-weight="600" id="batt-soc-text">--%</text>
+        </svg>
+      </div>
+      <div class="deye-stats">
+        <h3 style="border:none;padding:0;margin-bottom:0.6rem;">Inversor Deye</h3>
+        <div class="stat-row">
+          <span class="stat-label">SOC Bateria</span>
+          <span class="stat-value" id="v-deye-soc">--</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Potencia PV</span>
+          <span class="stat-value" id="v-deye-pv">--</span>
         </div>
       </div>
     </div>
@@ -374,11 +449,11 @@
     }
   }
 
-  function updateTank(boiaOn) {
-    const waterBody = $('water-body');
-    const waterSurface = $('water-surface');
-    const boiaFloat = $('boia-float');
-    const levelText = $('tank-level-text');
+  function updateTank(suffix, boiaOn) {
+    const waterBody = $('water-body' + suffix);
+    const waterSurface = $('water-surface' + suffix);
+    const boiaFloat = $('boia-float' + suffix);
+    const levelText = $('tank-level-text' + suffix);
     // boiaOn: 1 = ple (full), 0 = buit (empty)
     const waterY = boiaOn ? 32 : 108;
     const waterH = boiaOn ? 76 : 0;
@@ -452,6 +527,19 @@
     el.style.color = val ? '#00c853' : '#888';
   }
 
+  function updateBattery(soc) {
+    const fill = $('batt-fill');
+    const text = $('batt-soc-text');
+    const h = Math.max(0, Math.min(100, soc)) * 0.82; // altura maxima 82px
+    const y = 94 - h;
+    fill.setAttribute('y', y);
+    fill.setAttribute('height', h);
+    const color = soc > 50 ? '#00c853' : soc > 20 ? '#ffc107' : '#ff5252';
+    fill.setAttribute('fill', color);
+    text.textContent = soc + '%';
+    $('v-deye-soc').textContent = soc + '%';
+  }
+
   // --- Login ---
   $('btn-login').addEventListener('click', doLogin);
   $('input-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
@@ -491,6 +579,7 @@
       $('login-screen').classList.add('hidden');
       $('app').classList.remove('hidden');
       client.subscribe('boia/#', { qos: 0 });
+      client.subscribe('deye/#', { qos: 0 });
     });
 
     client.on('error', err => {
@@ -533,10 +622,20 @@
       return;
     }
 
+    if (topic === 'deye/status') {
+      flashCard('card-deye');
+      return;
+    }
+
     let data;
     try { data = JSON.parse(msg); } catch { return; }
 
     switch (topic) {
+      case 'deye/data':
+        updateBattery(data.soc);
+        $('v-deye-pv').textContent = data.pv_power + ' W';
+        flashCard('card-deye');
+        break;
       case 'boia/outputs':
         updatePump(data.out1);
         setLed('led-out2', data.out2);
@@ -551,7 +650,9 @@
         setLed('led-in2', data.in2);
         setLed('led-in3', data.in3);
         setLed('led-in4', data.in4);
+        updateTank('2', data.in1);
         flashCard('card-inputs');
+        flashCard('card-locals');
         break;
 
       case 'boia/lora':
@@ -563,7 +664,7 @@
         break;
 
       case 'boia/locals':
-        updateTank(data.boia_bomba);
+        updateTank('', data.boia_bomba);
         updateSwitchMC(data.switch_mc);
         $('v-pot').textContent = data.pot_max_min;
         flashCard('card-locals');

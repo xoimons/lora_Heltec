@@ -59,6 +59,8 @@ PubSubClient mqtt(secureClient);
 unsigned long lastWifiAttempt = 0;
 unsigned long lastMqttAttempt = 0;
 unsigned long lastMqttPublish = 0;
+unsigned long lastNtpAttempt = 0;
+#define NTP_RETRY_MS 30000
 bool wifiConnected = false;
 bool mqttConnected = false;
 bool ntpSynced = false;
@@ -109,18 +111,20 @@ bool mqttNeedsPublish = false;
 void syncNTP() {
   if (ntpSynced) return;
   Serial.println("NTP: sincronitzant rellotge...");
-  configTime(3600, 3600, "pool.ntp.org", "time.nist.gov");
+  configTime(3600, 3600, "pool.ntp.org", "time.google.com", "time.cloudflare.com");
   unsigned long start = millis();
-  while (time(nullptr) < 100000 && (millis() - start < 10000)) {
-    delay(250);
+  while (time(nullptr) < 100000 && (millis() - start < 15000)) {
+    delay(500);
     Radio.IrqProcess();
+    Serial.print(".");
   }
+  Serial.println();
   time_t now = time(nullptr);
   if (now > 100000) {
     ntpSynced = true;
     Serial.printf("NTP: sincronitzat! %s", ctime(&now));
   } else {
-    Serial.println("NTP: error sincronitzacio (reintentara)");
+    Serial.printf("NTP: error sincronitzacio (time=%ld, reintentara)\r\n", (long)now);
   }
 }
 
@@ -170,13 +174,15 @@ void wifiReconnect() {
 // MQTT (HiveMQ Cloud)
 // ============================================
 void mqttSetup() {
-  secureClient.setCACert(hivemq_root_ca);
+  secureClient.setInsecure();  // Saltar verificacio certificat (ESP32-S3 Heltec V3)
+  Serial.println("MQTT: TLS sense verificacio certificat");
   mqtt.setServer(MQTT_SERVER, MQTT_PORT);
   mqtt.setBufferSize(512);
+  mqtt.setKeepAlive(60);
 }
 
 void mqttReconnect() {
-  if (!wifiConnected || !ntpSynced) {
+  if (!wifiConnected) {
     mqttConnected = false;
     return;
   }
@@ -312,7 +318,7 @@ void evaluateOut1() {
 // NC: senyal 1 = boia avall (nivell no assolit) -> sortida ON
 // ============================================
 void evaluateOut2() {
-  bool newState = !((lastStateReceived >> 1) & 1);
+  bool newState = (lastStateReceived >> 1) & 1;
   if (newState != out2State) {
     out2State = newState;
     digitalWrite(OUT2_PIN, out2State ? HIGH : LOW);
@@ -322,7 +328,7 @@ void evaluateOut2() {
 }
 
 void evaluateOut3() {
-  bool newState = !((lastStateReceived >> 2) & 1);
+  bool newState = (lastStateReceived >> 2) & 1;
   if (newState != out3State) {
     out3State = newState;
     digitalWrite(OUT3_PIN, out3State ? HIGH : LOW);
@@ -532,6 +538,12 @@ void loop() {
 
   // --- WiFi reconnexio ---
   wifiReconnect();
+
+  // --- NTP reintent periodic ---
+  if (wifiConnected && !ntpSynced && (millis() - lastNtpAttempt >= NTP_RETRY_MS)) {
+    lastNtpAttempt = millis();
+    syncNTP();
+  }
 
   // --- MQTT reconnexio i loop ---
   mqttReconnect();

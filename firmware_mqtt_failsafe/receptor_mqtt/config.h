@@ -10,8 +10,8 @@
 // ============================================
 
 // --- WiFi (modem 4G) ---
-#define WIFI_SSID      "icon"               // Nom xarxa WiFi del modem 4G
-#define WIFI_PASSWORD  "rosroca22"           // Contrasenya WiFi del modem 4G
+#define WIFI_SSID      "Solar_Ossera"               // Nom xarxa WiFi del modem 4G
+#define WIFI_PASSWORD  "Solar_Ossera_26"           // Contrasenya WiFi del modem 4G
 #define WIFI_TIMEOUT_MS       15000          // Temps maxim per connectar WiFi (ms)
 #define WIFI_RECONNECT_MS     30000          // Interval entre intents de reconnexio WiFi (ms)
 
@@ -49,7 +49,7 @@
 
 // --- Potenciometre durada maxima bomba ---
 #define POT_PIN           2        // GPIO2 (ADC1), pull-down 4.7k a PCB
-#define POT_MAX_MINUTES   240UL    // Valor maxim: 240 minuts (4 hores)
+#define POT_MAX_MINUTES   480UL    // Valor maxim: 480 minuts (8 hores)
 
 // --- Parametres LoRa ---
 #define RF_FREQUENCY          868000000  // 868 MHz (Europa ISM)
