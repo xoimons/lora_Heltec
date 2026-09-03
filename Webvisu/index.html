@@ -661,11 +661,13 @@
         break;
 
       case 'boia/inputs':
-        setLed('led-in1', !data.in1);
+        // Nivell max diposit Ossera (in1): 0 = ple, 1 = buit (invers)
+        const in1Ple = Number(data.in1) === 0;
+        setLed('led-in1', in1Ple);
         setLed('led-in2', data.in2);
         setLed('led-in3', data.in3);
         setLed('led-in4', data.in4);
-        updateTank('2', !data.in1);
+        updateTank('2', in1Ple);
         flashCard('card-inputs');
         flashCard('card-locals');
         break;
