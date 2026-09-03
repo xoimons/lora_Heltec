@@ -616,7 +616,11 @@
 
     client.on('message', (topic, payload) => {
       const msg = payload.toString();
-      handleMessage(topic, msg);
+      try {
+        handleMessage(topic, msg);
+      } catch (e) {
+        console.error('Error processant missatge MQTT:', topic, msg, e);
+      }
     });
   }
 
@@ -643,6 +647,7 @@
 
     let data;
     try { data = JSON.parse(msg); } catch { return; }
+    if (!data || typeof data !== 'object') return;
 
     switch (topic) {
       case 'deye/data':
