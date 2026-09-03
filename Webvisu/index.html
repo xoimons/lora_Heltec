@@ -274,7 +274,7 @@
         <div style="text-align:center;">
           <div class="stat-label" style="margin-bottom:0.3rem;">Ossera</div>
           <div class="svg-container" style="margin:0;">
-            <svg viewBox="0 0 100 130" width="120" height="156">
+            <svg viewBox="0 0 135 130" width="162" height="156">
               <!-- Tank body -->
               <rect x="10" y="10" width="80" height="100" rx="4" fill="none" stroke="#5c6b80" stroke-width="2.5"/>
               <!-- Water level -->
@@ -305,6 +305,13 @@
               </g>
               <!-- Tank labels -->
               <text x="50" y="125" text-anchor="middle" fill="#888" font-size="8" id="tank-level-text-2">BUIT</text>
+              <!-- Nivells al costat dret: verd=ple, taronja=mig carrega, vermell=buit -->
+              <line x1="90" y1="25" x2="105" y2="25" stroke="#555" stroke-width="1.5"/>
+              <circle cx="112" cy="25" r="6" fill="#444" stroke="#555" stroke-width="1.5" class="led-circle" id="led-ossera-max"/>
+              <line x1="90" y1="60" x2="105" y2="60" stroke="#555" stroke-width="1.5"/>
+              <circle cx="112" cy="60" r="6" fill="#444" stroke="#555" stroke-width="1.5" class="led-circle" id="led-ossera-mig"/>
+              <line x1="90" y1="95" x2="105" y2="95" stroke="#555" stroke-width="1.5"/>
+              <circle cx="112" cy="95" r="6" fill="#444" stroke="#555" stroke-width="1.5" class="led-circle" id="led-ossera-min"/>
             </svg>
           </div>
         </div>
@@ -674,6 +681,9 @@
         setLed('led-in3', data.in3);
         setLed('led-in4', data.in4);
         updateTank('-2', in1Ple);
+        setLed('led-ossera-max', in1Ple);
+        setLed('led-ossera-mig', data.in2, '#ffb74d', '#ffcc80');
+        setLed('led-ossera-min', !in1Ple, '#ff5252', '#ff8a80');
         flashCard('card-inputs');
         flashCard('card-locals');
         break;
