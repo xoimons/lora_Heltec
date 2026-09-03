@@ -632,6 +632,7 @@
   // --- Message handler ---
   function handleMessage(topic, msg) {
     updateTime();
+    console.log('[MQTT]', topic, msg);
 
     if (topic === 'boia/status') {
       const online = msg.toLowerCase().includes('online');
