@@ -235,7 +235,7 @@
       <h3>Diposits</h3>
       <div style="display:flex; justify-content:space-around; flex-wrap:wrap; gap:0.5rem;">
         <div style="text-align:center;">
-          <div class="stat-label" style="margin-bottom:0.3rem;">Madern</div>
+          <div class="stat-label" style="margin-bottom:0.3rem; width:96px; margin-left:12px;">Madern</div>
           <div class="svg-container" style="margin:0;">
             <svg viewBox="0 0 135 130" width="162" height="156">
               <!-- Tank body -->
@@ -271,7 +271,7 @@
           </div>
         </div>
         <div style="text-align:center;">
-          <div class="stat-label" style="margin-bottom:0.3rem;">Ossera</div>
+          <div class="stat-label" style="margin-bottom:0.3rem; width:96px; margin-left:12px;">Ossera</div>
           <div class="svg-container" style="margin:0;">
             <svg viewBox="0 0 135 130" width="162" height="156">
               <!-- Tank body -->
@@ -467,9 +467,9 @@
     const waterBody = $('water-body' + suffix);
     const waterSurface = $('water-surface' + suffix);
     const levelText = $('tank-level-text' + suffix);
-    // boiaOn: 1 = ple (full), 0 = buit (nivell mínim visible ~20%)
-    const waterY = boiaOn ? 32 : 93;
-    const waterH = boiaOn ? 76 : 15;
+    // boiaOn: 1 = ple (full, enrasat amb el led maxim), 0 = buit (nivell mínim visible ~20%)
+    const waterY = boiaOn ? 25 : 93;
+    const waterH = boiaOn ? 83 : 15;
 
     waterBody.setAttribute('y', waterY);
     waterBody.setAttribute('height', waterH);
@@ -484,7 +484,7 @@
     const levelText = $('tank-level-text-2');
     let waterY, waterH, text;
     if (level === 'ple') {
-      waterY = 32; waterH = 76; text = 'PLE';
+      waterY = 25; waterH = 83; text = 'PLE';
     } else if (level === 'mig') {
       waterY = 60; waterH = 48; text = 'MIG';
     } else {
