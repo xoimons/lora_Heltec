@@ -683,7 +683,10 @@
         updateTank('-2', in1Ple);
         setLed('led-ossera-max', in1Ple);
         setLed('led-ossera-mig', data.in2);
-        setLed('led-ossera-min', !in1Ple, '#ff5252', '#ff8a80');
+        const ledOsseraMin = $('led-ossera-min');
+        ledOsseraMin.setAttribute('fill', in1Ple ? '#00c853' : '#ff5252');
+        ledOsseraMin.setAttribute('stroke', in1Ple ? '#00e676' : '#ff8a80');
+        ledOsseraMin.classList.add('active');
         flashCard('card-inputs');
         flashCard('card-locals');
         break;
