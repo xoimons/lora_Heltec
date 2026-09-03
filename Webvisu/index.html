@@ -661,11 +661,11 @@
         break;
 
       case 'boia/inputs':
-        setLed('led-in1', data.in1);
+        setLed('led-in1', !data.in1);
         setLed('led-in2', data.in2);
         setLed('led-in3', data.in3);
         setLed('led-in4', data.in4);
-        updateTank('2', data.in1);
+        updateTank('2', !data.in1);
         flashCard('card-inputs');
         flashCard('card-locals');
         break;
