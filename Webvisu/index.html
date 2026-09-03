@@ -237,7 +237,7 @@
         <div style="text-align:center;">
           <div class="stat-label" style="margin-bottom:0.3rem;">Madern</div>
           <div class="svg-container" style="margin:0;">
-            <svg viewBox="0 0 100 130" width="120" height="156">
+            <svg viewBox="0 0 135 130" width="162" height="156">
               <!-- Tank body -->
               <rect x="10" y="10" width="80" height="100" rx="4" fill="none" stroke="#5c6b80" stroke-width="2.5"/>
               <!-- Water level -->
@@ -261,7 +261,12 @@
                 </g>
               </g>
               <!-- Tank labels -->
-              <text x="50" y="63" text-anchor="middle" fill="#ccc" font-size="9" font-weight="600" id="tank-level-text">BUIT</text>
+              <text x="50" y="63" text-anchor="middle" fill="#888" font-size="8" id="tank-level-text">BUIT</text>
+              <!-- Nivells al costat dret: verd=ple, vermell=buit -->
+              <line x1="90" y1="25" x2="105" y2="25" stroke="#555" stroke-width="1.5"/>
+              <circle cx="112" cy="25" r="6" fill="#444" stroke="#555" stroke-width="1.5" class="led-circle" id="led-madern-max"/>
+              <line x1="90" y1="95" x2="105" y2="95" stroke="#555" stroke-width="1.5"/>
+              <circle cx="112" cy="95" r="6" fill="#444" stroke="#555" stroke-width="1.5" class="led-circle" id="led-madern-min"/>
             </svg>
           </div>
         </div>
@@ -292,8 +297,8 @@
                 </g>
               </g>
               <!-- Tank labels -->
-              <text x="50" y="63" text-anchor="middle" fill="#ccc" font-size="9" font-weight="600" id="tank-level-text-2">BUIT</text>
-              <!-- Nivells al costat dret: verd=ple, taronja=mig carrega, vermell=buit -->
+              <text x="50" y="63" text-anchor="middle" fill="#888" font-size="8" id="tank-level-text-2">BUIT</text>
+              <!-- Nivells al costat dret: verd=ple, verd=mig carrega, vermell/verd=buit/ple -->
               <line x1="90" y1="25" x2="105" y2="25" stroke="#555" stroke-width="1.5"/>
               <circle cx="112" cy="25" r="6" fill="#444" stroke="#555" stroke-width="1.5" class="led-circle" id="led-ossera-max"/>
               <line x1="90" y1="60" x2="105" y2="60" stroke="#555" stroke-width="1.5"/>
@@ -472,14 +477,14 @@
     levelText.textContent = boiaOn ? 'PLE' : 'BUIT';
   }
 
-  // Diposit Ossera: 3 nivells (ple=dalt de tot, mig=meitat, buit=20% minim)
+  // Diposit Ossera: 3 nivells (ple=igual que Madern, mig=meitat, buit=20% minim)
   function updateOsseraTank(level) {
     const waterBody = $('water-body-2');
     const waterSurface = $('water-surface-2');
     const levelText = $('tank-level-text-2');
     let waterY, waterH, text;
     if (level === 'ple') {
-      waterY = 12; waterH = 96; text = 'PLE';
+      waterY = 32; waterH = 76; text = 'PLE';
     } else if (level === 'mig') {
       waterY = 60; waterH = 48; text = 'MIG';
     } else {
@@ -704,7 +709,13 @@
         break;
 
       case 'boia/locals':
-        updateTank('', data.boia_bomba);
+        const madernPle = !!data.boia_bomba;
+        updateTank('', madernPle);
+        setLed('led-madern-max', madernPle);
+        const ledMadernMin = $('led-madern-min');
+        ledMadernMin.setAttribute('fill', madernPle ? '#00c853' : '#ff5252');
+        ledMadernMin.setAttribute('stroke', madernPle ? '#00e676' : '#ff8a80');
+        ledMadernMin.classList.add('active');
         updateSwitchMC(data.switch_mc);
         $('v-pot').textContent = data.pot_max_min;
         flashCard('card-locals');
