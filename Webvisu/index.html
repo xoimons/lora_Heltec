@@ -261,7 +261,7 @@
                 </g>
               </g>
               <!-- Tank labels -->
-              <text x="50" y="125" text-anchor="middle" fill="#888" font-size="8" id="tank-level-text">BUIT</text>
+              <text x="50" y="63" text-anchor="middle" fill="#ccc" font-size="9" font-weight="600" id="tank-level-text">BUIT</text>
             </svg>
           </div>
         </div>
@@ -292,7 +292,7 @@
                 </g>
               </g>
               <!-- Tank labels -->
-              <text x="50" y="125" text-anchor="middle" fill="#888" font-size="8" id="tank-level-text-2">BUIT</text>
+              <text x="50" y="63" text-anchor="middle" fill="#ccc" font-size="9" font-weight="600" id="tank-level-text-2">BUIT</text>
               <!-- Nivells al costat dret: verd=ple, taronja=mig carrega, vermell=buit -->
               <line x1="90" y1="25" x2="105" y2="25" stroke="#555" stroke-width="1.5"/>
               <circle cx="112" cy="25" r="6" fill="#444" stroke="#555" stroke-width="1.5" class="led-circle" id="led-ossera-max"/>
@@ -470,6 +470,25 @@
     waterBody.setAttribute('height', waterH);
     waterSurface.setAttribute('transform', 'translate(12,' + (waterY - 4) + ')');
     levelText.textContent = boiaOn ? 'PLE' : 'BUIT';
+  }
+
+  // Diposit Ossera: 3 nivells (ple=dalt de tot, mig=meitat, buit=20% minim)
+  function updateOsseraTank(level) {
+    const waterBody = $('water-body-2');
+    const waterSurface = $('water-surface-2');
+    const levelText = $('tank-level-text-2');
+    let waterY, waterH, text;
+    if (level === 'ple') {
+      waterY = 12; waterH = 96; text = 'PLE';
+    } else if (level === 'mig') {
+      waterY = 60; waterH = 48; text = 'MIG';
+    } else {
+      waterY = 93; waterH = 15; text = 'BUIT';
+    }
+    waterBody.setAttribute('y', waterY);
+    waterBody.setAttribute('height', waterH);
+    waterSurface.setAttribute('transform', 'translate(12,' + (waterY - 4) + ')');
+    levelText.textContent = text;
   }
 
   function updatePump(on) {
@@ -665,7 +684,7 @@
         setLed('led-in2', data.in2);
         setLed('led-in3', data.in3);
         setLed('led-in4', data.in4);
-        updateTank('-2', in1Ple);
+        updateOsseraTank(in1Ple ? 'ple' : (data.in2 ? 'mig' : 'buit'));
         setLed('led-ossera-max', in1Ple);
         setLed('led-ossera-mig', data.in2);
         const ledOsseraMin = $('led-ossera-min');
