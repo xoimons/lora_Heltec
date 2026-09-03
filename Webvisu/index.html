@@ -260,12 +260,6 @@
                   </path>
                 </g>
               </g>
-              <!-- Float/boia -->
-              <g id="boia-float" transform="translate(50, 96)">
-                <ellipse cx="0" cy="0" rx="14" ry="4" fill="#ff9800" stroke="#e65100" stroke-width="1"/>
-                <line x1="0" y1="-12" x2="0" y2="0" stroke="#e65100" stroke-width="1.5"/>
-                <circle cx="0" cy="-13" r="2.5" fill="#ff9800" stroke="#e65100" stroke-width="1"/>
-              </g>
               <!-- Tank labels -->
               <text x="50" y="125" text-anchor="middle" fill="#888" font-size="8" id="tank-level-text">BUIT</text>
             </svg>
@@ -296,12 +290,6 @@
                               M 0,2 Q 10,-2 20,2 Q 30,6 40,2 Q 50,-2 60,2 Q 70,6 80,2 L 80,10 L 0,10 Z"/>
                   </path>
                 </g>
-              </g>
-              <!-- Float/boia -->
-              <g id="boia-float-2" transform="translate(50, 96)">
-                <ellipse cx="0" cy="0" rx="14" ry="4" fill="#ff9800" stroke="#e65100" stroke-width="1"/>
-                <line x1="0" y1="-12" x2="0" y2="0" stroke="#e65100" stroke-width="1.5"/>
-                <circle cx="0" cy="-13" r="2.5" fill="#ff9800" stroke="#e65100" stroke-width="1"/>
               </g>
               <!-- Tank labels -->
               <text x="50" y="125" text-anchor="middle" fill="#888" font-size="8" id="tank-level-text-2">BUIT</text>
@@ -473,17 +461,14 @@
   function updateTank(suffix, boiaOn) {
     const waterBody = $('water-body' + suffix);
     const waterSurface = $('water-surface' + suffix);
-    const boiaFloat = $('boia-float' + suffix);
     const levelText = $('tank-level-text' + suffix);
     // boiaOn: 1 = ple (full), 0 = buit (nivell mínim visible ~20%)
     const waterY = boiaOn ? 32 : 93;
     const waterH = boiaOn ? 76 : 15;
-    const boiaY = boiaOn ? 35 : 96;
 
     waterBody.setAttribute('y', waterY);
     waterBody.setAttribute('height', waterH);
     waterSurface.setAttribute('transform', 'translate(12,' + (waterY - 4) + ')');
-    boiaFloat.setAttribute('transform', 'translate(50,' + boiaY + ')');
     levelText.textContent = boiaOn ? 'PLE' : 'BUIT';
   }
 
