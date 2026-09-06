@@ -514,7 +514,11 @@
       water.setAttribute('height', '8.5');
       text.textContent = '';
       setLed('led-clor-max', false);
-      setLed('led-clor-min', true, '#ff5252', '#ff8a80');
+      var ledClorMin = $('led-clor-min');
+      ledClorMin.setAttribute('fill', '#ff5252');
+      ledClorMin.setAttribute('stroke', '#ff8a80');
+      ledClorMin.setAttribute('filter', 'drop-shadow(0 0 4px #ff5252)');
+      ledClorMin.classList.add('active');
       minText.setAttribute('fill', '#ff5252');
     }
   }
