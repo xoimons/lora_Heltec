@@ -503,15 +503,15 @@
     const text = $('clor-level-text');
     const minText = $('clor-min-text');
     if (ple) {
-      water.setAttribute('y', '7.5');
-      water.setAttribute('height', '59');
+      water.setAttribute('y', '16');
+      water.setAttribute('height', '50.5');
       text.textContent = 'PLE';
       setLed('led-clor-max', true);
       setLed('led-clor-min', true);
       minText.setAttribute('fill', 'transparent');
     } else {
-      water.setAttribute('y', '51.75');
-      water.setAttribute('height', '14.75');
+      water.setAttribute('y', '58');
+      water.setAttribute('height', '8.5');
       text.textContent = '';
       setLed('led-clor-max', false);
       const ledMin = $('led-clor-min');
