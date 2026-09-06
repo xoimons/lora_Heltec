@@ -514,10 +514,7 @@
       water.setAttribute('height', '8.5');
       text.textContent = '';
       setLed('led-clor-max', false);
-      const ledMin = $('led-clor-min');
-      ledMin.setAttribute('fill', '#ff5252');
-      ledMin.setAttribute('stroke', '#ff8a80');
-      ledMin.classList.add('active');
+      setLed('led-clor-min', true, '#ff5252', '#ff8a80');
       minText.setAttribute('fill', '#ff5252');
     }
   }
