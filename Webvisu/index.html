@@ -506,23 +506,24 @@
   function updateClorTank(ple) {
     var water = $('clor-water');
     var minText = $('clor-min-text');
-    var ledMax = $('led-clor-max');
-    var ledMin = $('led-clor-min');
+    var ledMax = document.getElementById('led-clor-max');
+    var ledMin = document.getElementById('led-clor-min');
+    console.log('updateClorTank ple=' + ple, 'ledMin=', ledMin);
     if (ple) {
       water.setAttribute('y', '16');
       water.setAttribute('height', '50.5');
-      ledMax.setAttribute('fill', '#00c853');
-      ledMax.setAttribute('stroke', '#00e676');
-      ledMin.setAttribute('fill', '#00c853');
-      ledMin.setAttribute('stroke', '#00e676');
+      ledMax.style.fill = '#00c853';
+      ledMax.style.stroke = '#00e676';
+      ledMin.style.fill = '#00c853';
+      ledMin.style.stroke = '#00e676';
       minText.style.display = 'none';
     } else {
       water.setAttribute('y', '58');
       water.setAttribute('height', '8.5');
-      ledMax.setAttribute('fill', '#444');
-      ledMax.setAttribute('stroke', '#555');
-      ledMin.setAttribute('fill', '#ff5252');
-      ledMin.setAttribute('stroke', '#ff8a80');
+      ledMax.style.fill = '#444';
+      ledMax.style.stroke = '#555';
+      ledMin.style.fill = '#ff5252';
+      ledMin.style.stroke = '#ff8a80';
       minText.style.display = '';
     }
   }
