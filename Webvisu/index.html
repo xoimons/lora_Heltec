@@ -720,8 +720,12 @@
         setLed('led-in4', data.in4);
         updateClorTank(!!data.in4);
         updateOsseraTank(in1Ple ? 'ple' : (data.in2 ? 'mig' : 'buit'));
-        setLed('led-ossera-max', in1Ple);
-        setLed('led-ossera-mig', data.in2);
+        var ledOsseraMax = document.getElementById('led-ossera-max');
+        ledOsseraMax.style.fill = in1Ple ? '#00c853' : '#444';
+        ledOsseraMax.style.stroke = in1Ple ? '#00e676' : '#555';
+        var ledOsseraMig = document.getElementById('led-ossera-mig');
+        ledOsseraMig.style.fill = data.in2 ? '#00c853' : '#444';
+        ledOsseraMig.style.stroke = data.in2 ? '#00e676' : '#555';
         var ledOsseraMin = document.getElementById('led-ossera-min');
         ledOsseraMin.style.fill = in1Ple ? '#00c853' : '#ff5252';
         ledOsseraMin.style.stroke = in1Ple ? '#00e676' : '#ff8a80';
@@ -740,7 +744,9 @@
       case 'boia/locals':
         const madernPle = !!data.boia_bomba;
         updateTank('', madernPle);
-        setLed('led-madern-max', madernPle);
+        var ledMadernMax = document.getElementById('led-madern-max');
+        ledMadernMax.style.fill = madernPle ? '#00c853' : '#444';
+        ledMadernMax.style.stroke = madernPle ? '#00e676' : '#555';
         var ledMadernMin = document.getElementById('led-madern-min');
         ledMadernMin.style.fill = madernPle ? '#00c853' : '#ff5252';
         ledMadernMin.style.stroke = madernPle ? '#00e676' : '#ff8a80';
