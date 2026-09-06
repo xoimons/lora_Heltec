@@ -508,7 +508,6 @@
     var minText = $('clor-min-text');
     var ledMax = document.getElementById('led-clor-max');
     var ledMin = document.getElementById('led-clor-min');
-    console.log('updateClorTank ple=' + ple, 'ledMin=', ledMin);
     if (ple) {
       water.setAttribute('y', '16');
       water.setAttribute('height', '50.5');
@@ -723,10 +722,9 @@
         updateOsseraTank(in1Ple ? 'ple' : (data.in2 ? 'mig' : 'buit'));
         setLed('led-ossera-max', in1Ple);
         setLed('led-ossera-mig', data.in2);
-        const ledOsseraMin = $('led-ossera-min');
-        ledOsseraMin.setAttribute('fill', in1Ple ? '#00c853' : '#ff5252');
-        ledOsseraMin.setAttribute('stroke', in1Ple ? '#00e676' : '#ff8a80');
-        ledOsseraMin.classList.add('active');
+        var ledOsseraMin = document.getElementById('led-ossera-min');
+        ledOsseraMin.style.fill = in1Ple ? '#00c853' : '#ff5252';
+        ledOsseraMin.style.stroke = in1Ple ? '#00e676' : '#ff8a80';
         flashCard('card-inputs');
         flashCard('card-locals');
         break;
@@ -743,10 +741,9 @@
         const madernPle = !!data.boia_bomba;
         updateTank('', madernPle);
         setLed('led-madern-max', madernPle);
-        const ledMadernMin = $('led-madern-min');
-        ledMadernMin.setAttribute('fill', madernPle ? '#00c853' : '#ff5252');
-        ledMadernMin.setAttribute('stroke', madernPle ? '#00e676' : '#ff8a80');
-        ledMadernMin.classList.add('active');
+        var ledMadernMin = document.getElementById('led-madern-min');
+        ledMadernMin.style.fill = madernPle ? '#00c853' : '#ff5252';
+        ledMadernMin.style.stroke = madernPle ? '#00e676' : '#ff8a80';
         updateSwitchMC(data.switch_mc);
         $('v-pot').textContent = data.pot_max_min;
         flashCard('card-locals');
