@@ -430,6 +430,10 @@
           <span class="stat-label">Potencia PV</span>
           <span class="stat-value" id="v-deye-pv">--</span>
         </div>
+        <div class="stat-row">
+          <span class="stat-label">Potencia sortida</span>
+          <span class="stat-value" id="v-deye-output">--</span>
+        </div>
       </div>
     </div>
 
@@ -697,6 +701,7 @@
       case 'boia/deye':
         updateBattery(data.soc);
         $('v-deye-pv').textContent = data.pv_power + ' W';
+        $('v-deye-output').textContent = data.output_power + ' W';
         flashCard('card-deye');
         break;
       case 'boia/outputs':
