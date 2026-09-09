@@ -748,8 +748,8 @@
         ledMadernMax.style.fill = madernPle ? '#00c853' : '#444';
         ledMadernMax.style.stroke = madernPle ? '#00e676' : '#555';
         var ledMadernMin = document.getElementById('led-madern-min');
-        ledMadernMin.style.fill = madernPle ? '#00c853' : '#ff5252';
-        ledMadernMin.style.stroke = madernPle ? '#00e676' : '#ff8a80';
+        ledMadernMin.style.fill = madernPle ? '#444' : '#ff5252';
+        ledMadernMin.style.stroke = madernPle ? '#555' : '#ff8a80';
         updateSwitchMC(data.switch_mc);
         $('v-pot').textContent = data.pot_max_min;
         flashCard('card-locals');
