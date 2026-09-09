@@ -375,7 +375,7 @@
               <line x1="36" y1="16" x2="41" y2="16" stroke="#555" stroke-width="1.5"/>
               <circle cx="48" cy="16" r="7" fill="#444" stroke="#555" stroke-width="1.5" class="led-circle" id="led-clor-max"/>
               <line x1="36" y1="58" x2="41" y2="58" stroke="#555" stroke-width="1.5"/>
-              <circle cx="48" cy="58" r="7" fill="#ff5252" stroke="#ff8a80" stroke-width="1.5" id="led-clor-min"/>
+              <circle cx="48" cy="58" r="7" fill="#444" stroke="#555" stroke-width="1.5" id="led-clor-min"/>
               <text x="62" y="62" text-anchor="start" fill="#ff5252" font-size="10" font-weight="600" id="clor-min-text">25%</text>
             </svg>
             <span class="led-label">Diposit Clor Ossera</span>
@@ -510,8 +510,8 @@
       water.setAttribute('height', '50.5');
       ledMax.style.fill = '#00c853';
       ledMax.style.stroke = '#00e676';
-      ledMin.style.fill = '#00c853';
-      ledMin.style.stroke = '#00e676';
+      ledMin.style.fill = '#444';
+      ledMin.style.stroke = '#555';
       minText.style.display = 'none';
     } else {
       water.setAttribute('y', '58');
@@ -592,7 +592,7 @@
     const y = 94 - h;
     fill.setAttribute('y', y);
     fill.setAttribute('height', h);
-    fill.setAttribute('fill', '#6dbf8b');
+    fill.setAttribute('fill', 'rgba(0,150,255,0.35)');
     text.textContent = soc + '%';
     $('v-deye-soc').textContent = soc + '%';
   }
