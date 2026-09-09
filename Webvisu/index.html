@@ -698,7 +698,7 @@
     if (!data || typeof data !== 'object') return;
 
     switch (topic) {
-      case 'deye/data':
+      case 'boia/deye':
         updateBattery(data.soc);
         $('v-deye-pv').textContent = data.pv_power + ' W';
         flashCard('card-deye');
