@@ -723,8 +723,9 @@
         ledOsseraMig.style.fill = data.in2 ? '#00c853' : '#444';
         ledOsseraMig.style.stroke = data.in2 ? '#00e676' : '#555';
         var ledOsseraMin = document.getElementById('led-ossera-min');
-        ledOsseraMin.style.fill = in1Ple ? '#444' : '#ff5252';
-        ledOsseraMin.style.stroke = in1Ple ? '#555' : '#ff8a80';
+        const osseraBuit = !in1Ple && !data.in2;
+        ledOsseraMin.style.fill = osseraBuit ? '#ff5252' : '#444';
+        ledOsseraMin.style.stroke = osseraBuit ? '#ff8a80' : '#555';
         flashCard('card-inputs');
         flashCard('card-locals');
         break;
